@@ -1,0 +1,64 @@
+[
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
+    "Method": "ExportFile",
+    "RelativePath": "api/Excel/export",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
+    "Method": "PerformOperation",
+    "RelativePath": "api/Excel/operation",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "ExcelDataManipulator.API.Models.OperationRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ExcelDataManipulator.API.Models.OperationResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
+    "Method": "UploadFile",
+    "RelativePath": "api/Excel/upload",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "file",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ExcelDataManipulator.API.Models.ExcelDataModel",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  }
+]
