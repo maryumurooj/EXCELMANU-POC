@@ -1,6 +1,42 @@
 [
   {
     "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
+    "Method": "SetActiveSheet",
+    "RelativePath": "api/Excel/activesheet",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "sheetName",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
+    "Method": "GetActiveSheet",
+    "RelativePath": "api/Excel/activesheet",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.String",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
     "Method": "ExportFile",
     "RelativePath": "api/Excel/export",
     "HttpMethod": "GET",
@@ -37,6 +73,26 @@
   },
   {
     "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
+    "Method": "GetSheets",
+    "RelativePath": "api/Excel/sheets",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
     "Method": "UploadFile",
     "RelativePath": "api/Excel/upload",
     "HttpMethod": "POST",
@@ -49,16 +105,6 @@
         "IsRequired": false
       }
     ],
-    "ReturnTypes": [
-      {
-        "Type": "ExcelDataManipulator.API.Models.ExcelDataModel",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
+    "ReturnTypes": []
   }
 ]

@@ -10,6 +10,7 @@ export interface ExcelData {
     selectedRows?: number[];
     selectedColumns?: number[];
     parameters?: Record<string, any>;
+    currentData?: ExcelData; // ✅ Add this line
   }
   
   export interface OperationResponse {

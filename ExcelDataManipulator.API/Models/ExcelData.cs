@@ -14,6 +14,8 @@
         public int[]? SelectedRows { get; set; }
         public int[]? SelectedColumns { get; set; }
         public Dictionary<string, object>? Parameters { get; set; }
+        public ExcelDataModel? CurrentData { get; set; } // ✅ Add this field
+
     }
 
     public class OperationResponse

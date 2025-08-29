@@ -49,3 +49,4 @@ C:\Users\Maryum Urooj Ahmed\Desktop\EXCELPOC\ExcelDataManipulator.API\obj\Debug\
 C:\Users\Maryum Urooj Ahmed\Desktop\EXCELPOC\ExcelDataManipulator.API\obj\Debug\net9.0\ExcelDataManipulator.API.pdb
 C:\Users\Maryum Urooj Ahmed\Desktop\EXCELPOC\ExcelDataManipulator.API\obj\Debug\net9.0\ExcelDataManipulator.API.genruntimeconfig.cache
 C:\Users\Maryum Urooj Ahmed\Desktop\EXCELPOC\ExcelDataManipulator.API\obj\Debug\net9.0\ref\ExcelDataManipulator.API.dll
+C:\Users\Maryum Urooj Ahmed\Desktop\EXCELPOC\ExcelDataManipulator.API\obj\Debug\net9.0\ExcelDataManipulator.API.sourcelink.json

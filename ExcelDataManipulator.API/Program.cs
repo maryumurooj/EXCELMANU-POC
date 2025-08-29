@@ -1,6 +1,9 @@
 using ExcelDataManipulator.API.Services;
+using OfficeOpenXml;
 
 var builder = WebApplication.CreateBuilder(args);
+
+ExcelPackage.License.SetNonCommercialPersonal("Your Name");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

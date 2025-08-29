@@ -15,23 +15,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
     const file = event.target.files?.[0];
     if (!file) return;
   
-    // Add file validation on frontend
-    const allowedTypes = ['.xlsx', '.xls'];
-    const fileName = file.name.toLowerCase();
-    const isValidType = allowedTypes.some(type => fileName.endsWith(type));
-    
-    if (!isValidType) {
-      alert('Please select a valid Excel file (.xlsx or .xls)');
-      return;
-    }
-  
-    const formData = new FormData();
-    formData.append('file', file);
-  
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+  
       console.log('Uploading file:', file.name, 'Size:', file.size);
-      
-      const response = await axios.post<ExcelData>(
+  
+      const response = await axios.post(
         'http://localhost:5018/api/excel/upload',
         formData,
         {
@@ -40,29 +30,32 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
           },
         }
       );
-      
-      onUpload(response.data);
-    } catch (error: any) {
-      console.error('Upload failed:', error);
-      console.error('Full error response:', error.response);
-      console.error('Error response data:', error.response?.data);
-      
-      // Extract the detailed error message from your backend
-      let errorMessage = 'Unknown error occurred';
-      if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.response.data.title) {
-          errorMessage = error.response.data.title;
-        }
+  
+      // ✅ Add detailed logging
+      console.log('📦 Full upload response:', response);
+      console.log('📊 Response data:', response.data);
+      console.log('🔍 Response data structure:', {
+        hasMessage: !!response.data.message,
+        hasSheets: !!response.data.sheets,
+        hasActiveSheet: !!response.data.activeSheet,
+        hasData: !!response.data.data,
+        dataType: typeof response.data.data
+      });
+  
+      // ✅ Handle new multi-sheet response format
+      if (response.data.data) {
+        console.log('✅ Calling onUpload with:', response.data.data);
+        onUpload(response.data.data);
+      } else {
+        console.error('❌ No data found in response:', response.data);
       }
-      
-      console.error('Extracted error message:', errorMessage);
-      alert(`Failed to upload file: ${errorMessage}`);
+  
+    } catch (error: any) {
+      console.error('❌ Upload failed:', error);
+      console.error('Error response:', error.response?.data);
     }
   };
+  
   
 
   return (
