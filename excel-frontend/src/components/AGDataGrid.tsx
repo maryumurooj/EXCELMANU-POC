@@ -3,14 +3,27 @@ import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
   GridReadyEvent, 
-  CellClickedEvent, 
   SelectionChangedEvent,
   ModuleRegistry,
   AllCommunityModule,
-  Column,
   CellValueChangedEvent 
 } from 'ag-grid-community';
 import { ExcelData } from '../types/ExcelTypes';
+import { 
+  Box, 
+  Paper, 
+  Typography, 
+  Chip, 
+  Stack,
+  Button,
+  Alert
+} from '@mui/material';
+import { 
+  TableView, 
+  ViewColumn, 
+  Clear,
+  Info
+} from '@mui/icons-material';
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
@@ -30,14 +43,12 @@ interface AGDataGridProps {
 const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
   const [gridApi, setGridApi] = useState<any>(null);
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
-  const [cellEdits, setCellEdits] = useState<Map<string, string>>(new Map()); // ✅ Track edits
-
+  const [cellEdits, setCellEdits] = useState<Map<string, string>>(new Map());
 
   const getCurrentDataWithEdits = useCallback(() => {
     const editedData = data.data.map((row, rowIndex) => {
       return row.map((cell, colIndex) => {
         const cellKey = `${rowIndex}_col_${colIndex}`;
-        // Return edited value if exists, otherwise original
         return cellEdits.has(cellKey) ? cellEdits.get(cellKey)! : cell;
       });
     });
@@ -48,13 +59,10 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
     };
   }, [data, cellEdits]);
 
-  // ✅ Expose function via window (simple approach)
   useEffect(() => {
     (window as any).getCurrentGridDataWithEdits = getCurrentDataWithEdits;
   }, [getCurrentDataWithEdits]);
-
   
-  // ✅ Handle cell value changes
   const onCellValueChanged = useCallback((event: CellValueChangedEvent) => {
     const { rowIndex, colDef, newValue } = event;
     if (rowIndex !== null && colDef?.field) {
@@ -64,11 +72,9 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         newEdits.set(cellKey, newValue);
         return newEdits;
       });
-      console.log(`✏️ Cell edited: Row ${rowIndex}, Column ${colDef.field}, New value: "${newValue}"`);
     }
   }, []);
 
-  // ✅ Apply cell edits to row data
   const rowData = useMemo(() => {
     return data.data.map((row, rowIndex) => {
       const rowObj: Record<string, any> = { 
@@ -79,24 +85,20 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
       row.forEach((cell, colIndex) => {
         const field = `col_${colIndex}`;
         const cellKey = `${rowIndex}_${field}`;
-        
-        // ✅ Use edited value if exists, otherwise use original
         rowObj[field] = cellEdits.has(cellKey) ? cellEdits.get(cellKey) : cell;
       });
       
       return rowObj;
     });
-  }, [data.data, cellEdits]); // ✅ Depend on both data and edits
+  }, [data.data, cellEdits]);
 
-  // ✅ Clear edits when new file is uploaded (optional)
   useEffect(() => {
     setCellEdits(new Map());
-  }, [data.headers]); // Clear when headers change (new file)
+  }, [data.headers]);
 
   const getRowId = useCallback((params: any) => {
     return params.data.id;
   }, []);
-
 
   const columnDefs = useMemo((): ColDef[] => {
     return data.headers.map((header, index) => ({
@@ -110,6 +112,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
       checkboxSelection: index === 0,
       headerCheckboxSelection: index === 0,
       headerClass: selectedColumns.includes(`col_${index}`) ? 'selected-column-header' : '',
+      cellClass: selectedColumns.includes(`col_${index}`) ? 'selected-column-cell' : '',
       onCellClicked: (params: any) => {
         const field = params.colDef.field;
         let newSelectedColumns: string[];
@@ -140,6 +143,8 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
 
   const onGridReady = useCallback((params: GridReadyEvent) => {
     setGridApi(params.api);
+    // Auto-size columns to fit content
+    params.api.sizeColumnsToFit();
   }, []);
 
   const onSelectionChanged = useCallback((event: SelectionChangedEvent) => {
@@ -186,88 +191,162 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
   }, [selectedColumns, onSelectionChange]);
 
   return (
-    <>
-      <div style={{ marginBottom: '10px', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-        <strong>Current Selection:</strong>
-        {selectedColumns.length > 0 && (
-          <span style={{ marginLeft: '10px' }}>
-            Columns: {selectedColumns.map(field => data.headers[parseInt(field.replace('col_', ''))]).join(', ')}
-          </span>
-        )}
-        <div style={{ marginTop: '4px', fontSize: '12px', color: '#666' }}>
-          💡 <strong>Tip:</strong> Click on any cell in a column to select it. Hold Ctrl+Click to select multiple columns.
-        </div>
-      </div>
+    <Box>
+      {/* Selection Info */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          mb: 3, 
+          backgroundColor: 'primary.50',
+          border: '1px solid',
+          borderColor: 'primary.200'
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <TableView sx={{ color: 'primary.main' }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            Selected:
+          </Typography>
+          {selectedColumns.length > 0 ? (
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {selectedColumns.map(field => {
+                const headerName = data.headers[parseInt(field.replace('col_', ''))];
+                return (
+                  <Chip
+                    key={field}
+                    label={headerName}
+                    size="small"
+                    color="primary"
+                  />
+                );
+              })}
+            </Stack>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No columns selected
+            </Typography>
+          )}
+          {selectedColumns.length > 0 && (
+            <Button
+              onClick={() => setSelectedColumns([])}
+              startIcon={<Clear />}
+              size="small"
+              variant="outlined"
+              sx={{ ml: 'auto' }}
+            >
+              Clear
+            </Button>
+          )}
+        </Stack>
+      </Paper>
 
-      <div style={{ marginBottom: '10px' }}>
-        <strong>Quick Column Select:</strong>
-        {data.headers.map((header, index) => (
-          <button
-            key={`col_${index}`}
-            onClick={(e: any) => handleColumnHeaderClick(`col_${index}`, e)}
-            style={{
-              margin: '2px',
-              padding: '4px 8px',
-              backgroundColor: selectedColumns.includes(`col_${index}`) ? '#1976d2' : '#f0f0f0',
-              color: selectedColumns.includes(`col_${index}`) ? 'white' : 'black',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            {header}
-          </button>
-        ))}
-        <button
-          onClick={() => setSelectedColumns([])}
-          style={{
-            margin: '2px',
-            padding: '4px 8px',
-            backgroundColor: '#ff4444',
-            color: 'white',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px'
+      {/* Column Selection */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          mb: 3,
+          backgroundColor: 'grey.50',
+          border: '1px solid',
+          borderColor: 'grey.200'
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+          <ViewColumn sx={{ color: 'secondary.main' }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            Quick Select:
+          </Typography>
+        </Stack>
+        
+        <Stack direction="row" spacing={1} flexWrap="wrap">
+          {data.headers.map((header, index) => (
+            <Button
+              key={`col_${index}`}
+              onClick={(e: any) => handleColumnHeaderClick(`col_${index}`, e)}
+              variant={selectedColumns.includes(`col_${index}`) ? "contained" : "outlined"}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                minWidth: 'auto',
+                px: 2,
+                py: 0.5,
+                mb: 1,
+              }}
+            >
+              {header}
+            </Button>
+          ))}
+        </Stack>
+
+        <Alert 
+          severity="info" 
+          icon={<Info />}
+          sx={{ mt: 2 }}
+        >
+          <Typography variant="caption">
+            Click column headers or use Ctrl+Click to select multiple columns for operations.
+          </Typography>
+        </Alert>
+      </Paper>
+
+      {/* Data Grid - FULL SIZE */}
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200' }}>
+        <div 
+          className="ag-theme-quartz" 
+          style={{ 
+            height: '70vh', // Much larger height
+            width: '100%',
+            minHeight: '600px'
           }}
         >
-          Clear Selection
-        </button>
-      </div>
-
-      <div className="ag-theme-quartz" style={{ height: 600, width: '100%' }}>
-        <AgGridReact
-          rowData={rowData}
-          columnDefs={columnDefs}
-          getRowId={getRowId}
-          onGridReady={onGridReady}
-          onSelectionChanged={onSelectionChanged}
-          onCellValueChanged={onCellValueChanged} // ✅ Add this handler
-          rowSelection="multiple"
-          suppressRowClickSelection={false}
-          enableRangeSelection={true}
-          enableCellTextSelection={true}
-          defaultColDef={{
-            sortable: true,
-            filter: true,
-            resizable: true,
-            editable: true,
-          }}
-          animateRows={true}
-          // ✅ Enable undo/redo for better UX
-          undoRedoCellEditing={true}
-          undoRedoCellEditingLimit={20}
-        />
-      </div>
+          <AgGridReact
+            rowData={rowData}
+            columnDefs={columnDefs}
+            getRowId={getRowId}
+            onGridReady={onGridReady}
+            onSelectionChanged={onSelectionChanged}
+            onCellValueChanged={onCellValueChanged}
+            rowSelection="multiple"
+            suppressRowClickSelection={false}
+            enableRangeSelection={true}
+            enableCellTextSelection={true}
+            defaultColDef={{
+              sortable: true,
+              filter: true,
+              resizable: true,
+              editable: true,
+              minWidth: 100,
+              flex: 1, // This makes columns flexible
+            }}
+            animateRows={true}
+            undoRedoCellEditing={true}
+            undoRedoCellEditingLimit={20}
+          />
+        </div>
+      </Paper>
 
       <style>{`
-        .selected-column-header {
-          background-color: #1976d2 !important;
+        .ag-theme-quartz .selected-column-header {
+          background-color: #2563eb !important;
           color: white !important;
         }
+        
+        .ag-theme-quartz .selected-column-cell {
+          background-color: #eff6ff !important;
+          border-left: 3px solid #2563eb;
+        }
+
+        .ag-theme-quartz .ag-header-cell:hover {
+          background-color: #f3f4f6 !important;
+        }
+
+        .ag-theme-quartz .ag-row:hover {
+          background-color: #f9fafb !important;
+        }
       `}</style>
-    </>
+    </Box>
   );
 };
 

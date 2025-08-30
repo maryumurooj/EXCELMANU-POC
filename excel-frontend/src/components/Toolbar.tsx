@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Box,
   Button,
-  ButtonGroup,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -13,7 +12,29 @@ import {
   Select,
   MenuItem,
   Alert,
+  Paper,
+  Typography,
+  Stack,
+  Divider,
+  Menu,
+  ListItemIcon,
+  ListItemText,
+  Chip
 } from "@mui/material";
+import {
+  Transform,
+  Calculate,
+  Tune,
+  GetApp,
+  ArrowDropDown,
+  Link,
+  FormatClear,
+  TextFields,
+  PivotTableChart,
+  Functions,
+  TrendingUp,
+  Analytics
+} from "@mui/icons-material";
 import axios from "axios";
 import { ExcelData, OperationRequest } from "../types/ExcelTypes";
 
@@ -33,7 +54,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onDataUpdate,
   currentData,
 }) => {
-  // ✅ ALL hooks declared FIRST, unconditionally
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentOperation, setCurrentOperation] = useState("");
   const [delimiter, setDelimiter] = useState("");
@@ -46,16 +66,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
     aggregation: "sum",
   });
 
-  // ✅ NOW safe to do early return after hooks
+  // Menu states
+  const [transformMenuAnchor, setTransformMenuAnchor] = useState<null | HTMLElement>(null);
+  const [calculateMenuAnchor, setCalculateMenuAnchor] = useState<null | HTMLElement>(null);
+  const [cleanMenuAnchor, setCleanMenuAnchor] = useState<null | HTMLElement>(null);
+
   if (!currentData || !currentData.headers) {
     return (
-      <Box sx={{ mb: 2, p: 2, textAlign: 'center' }}>
-        Loading toolbar...
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography color="text.secondary">Loading toolbar...</Typography>
       </Box>
     );
   }
 
-  // ✅ Your existing functions and logic here
   const executeOperation = async (
     operation: string,
     parameters?: Record<string, any>
@@ -65,15 +88,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
         ? (window as any).getCurrentGridDataWithEdits()
         : currentData;
 
-      console.log("🔄 Data with edits before operation:", currentDataWithEdits);
-
       const request: OperationRequest = {
         operation,
         selectedColumns: selectedCells.columns,
         parameters,
       };
-
-      console.log("🚀 Executing operation:", operation, "on columns:", selectedCells.columns);
 
       const response = await axios.post(
         "http://localhost:5018/api/excel/operation",
@@ -83,25 +102,48 @@ const Toolbar: React.FC<ToolbarProps> = ({
         }
       );
 
-      console.log("📥 Response:", response.data);
-
       if (response.data.success) {
-        console.log("✅ New data:", response.data.data);
         onDataUpdate(response.data.data);
       }
     } catch (error: any) {
       console.error("❌ Operation failed:", error);
-      console.error("Error details:", error.response?.data);
     }
   };
 
-  // Check if operations can be performed based on selection
   const canConcatenate = selectedCells.columns.length >= 2;
-  const canTrim = selectedCells.columns.length === 1;
+  const canTrim = selectedCells.columns.length >= 1;
   const canChangeCase = selectedCells.columns.length === 1;
   const canSort = selectedCells.columns.length === 1;
-  const canSum = selectedCells.columns.length >= 1;
+  const canCalculate = selectedCells.columns.length >= 1;
 
+  // Transform Operations
+  const handleTransformMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setTransformMenuAnchor(event.currentTarget);
+  };
+
+  const handleTransformMenuClose = () => {
+    setTransformMenuAnchor(null);
+  };
+
+  // Calculate Operations
+  const handleCalculateMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setCalculateMenuAnchor(event.currentTarget);
+  };
+
+  const handleCalculateMenuClose = () => {
+    setCalculateMenuAnchor(null);
+  };
+
+  // Clean Operations
+  const handleCleanMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setCleanMenuAnchor(event.currentTarget);
+  };
+
+  const handleCleanMenuClose = () => {
+    setCleanMenuAnchor(null);
+  };
+
+  // Operation handlers
   const handleConcatenate = () => {
     if (!canConcatenate) {
       alert("Please select at least 2 columns to concatenate");
@@ -109,32 +151,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }
     setCurrentOperation("concatenate");
     setDialogOpen(true);
-  };
-
-  const handleTrim = () => {
-    if (!canTrim) {
-      alert("Please select exactly 1 column to trim");
-      return;
-    }
-    executeOperation("trim");
-  };
-
-  const handlePivot = () => {
-    if (currentData.headers.length < 3) {
-      alert("Need at least 3 columns to create a pivot table");
-      return;
-    }
-    setPivotDialogOpen(true);
-  };
-
-  const handlePivotConfirm = () => {
-    executeOperation("pivot", {
-      rowGroupColumn: pivotSettings.rowGroupColumn,
-      pivotColumn: pivotSettings.pivotColumn,
-      valueColumn: pivotSettings.valueColumn,
-      aggregation: pivotSettings.aggregation,
-    });
-    setPivotDialogOpen(false);
+    handleTransformMenuClose();
   };
 
   const handleChangeCase = () => {
@@ -144,6 +161,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }
     setCurrentOperation("changecase");
     setDialogOpen(true);
+    handleTransformMenuClose();
+  };
+
+  const handlePivot = () => {
+    if (currentData.headers.length < 3) {
+      alert("Need at least 3 columns to create a pivot table");
+      return;
+    }
+    setPivotDialogOpen(true);
+    handleTransformMenuClose();
   };
 
   const handleSort = (ascending: boolean) => {
@@ -152,14 +179,64 @@ const Toolbar: React.FC<ToolbarProps> = ({
       return;
     }
     executeOperation("sort", { ascending });
+    handleTransformMenuClose();
   };
 
-  const handleSum = () => {
-    if (!canSum) {
-      alert("Please select at least 1 column to sum");
+  // Clean operations
+  const handleTrim = () => {
+    if (!canTrim) {
+      alert("Please select at least 1 column to trim");
       return;
     }
+    executeOperation("trim");
+    handleCleanMenuClose();
+  };
+
+  const handleTrimAll = () => {
+    if (window.confirm("This will trim all cells in the table. Continue?")) {
+      executeOperation("trimall");
+    }
+    handleCleanMenuClose();
+  };
+
+  // Calculate operations
+  const handleSum = () => {
     executeOperation("sum");
+    handleCalculateMenuClose();
+  };
+
+  const handleAverage = () => {
+    executeOperation("average");
+    handleCalculateMenuClose();
+  };
+
+  const handleMin = () => {
+    executeOperation("min");
+    handleCalculateMenuClose();
+  };
+
+  const handleMax = () => {
+    executeOperation("max");
+    handleCalculateMenuClose();
+  };
+
+  const handleCount = () => {
+    executeOperation("count");
+    handleCalculateMenuClose();
+  };
+
+  const handleMedian = () => {
+    executeOperation("median");
+    handleCalculateMenuClose();
+  };
+
+  const handleMultiply = () => {
+    if (selectedCells.columns.length < 2) {
+      alert("Please select at least 2 columns to multiply");
+      return;
+    }
+    executeOperation("multiply");
+    handleCalculateMenuClose();
   };
 
   const handleDialogConfirm = () => {
@@ -173,6 +250,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }
     setDialogOpen(false);
     setDelimiter("");
+  };
+
+  const handlePivotConfirm = () => {
+    executeOperation("pivot", {
+      rowGroupColumn: pivotSettings.rowGroupColumn,
+      pivotColumn: pivotSettings.pivotColumn,
+      valueColumn: pivotSettings.valueColumn,
+      aggregation: pivotSettings.aggregation,
+    });
+    setPivotDialogOpen(false);
   };
 
   const handleExport = async () => {
@@ -196,245 +283,154 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }
   };
 
-  const canTrimSingle = selectedCells.columns.length === 1;
-  const canTrimMultiple = selectedCells.columns.length >= 1;
-  const canTrimAll = currentData.data.length > 0;
-  const canTrimCells = selectedCells.cells.length > 0;
-
-  const handleTrimSingle = () => {
-    if (!canTrimSingle) {
-      alert("Please select exactly 1 column to trim");
-      return;
-    }
-    executeOperation("trim");
-  };
-
-  const handleTrimMultiple = () => {
-    if (!canTrimMultiple) {
-      alert("Please select at least 1 column to trim");
-      return;
-    }
-    executeOperation("trimcolumns");
-  };
-
-  const handleTrimAll = () => {
-    if (window.confirm("This will trim all cells in the table. Continue?")) {
-      executeOperation("trimall");
-    }
-  };
-
-  const handleTrimCells = () => {
-    if (!canTrimCells) {
-      alert("Please select specific cells to trim");
-      return;
-    }
-    executeOperation("trimcells", {
-      cellCoordinates: selectedCells.cells,
-    });
-  };
-
-  
-const canCalculate = selectedCells.columns.length >= 1;
-
-const handleAverage = () => {
-  if (!canCalculate) {
-    alert("Please select at least 1 column to calculate average");
-    return;
-  }
-  executeOperation("average");
-};
-
-const handleMin = () => {
-  if (!canCalculate) {
-    alert("Please select at least 1 column to find minimum");
-    return;
-  }
-  executeOperation("min");
-};
-
-const handleMax = () => {
-  if (!canCalculate) {
-    alert("Please select at least 1 column to find maximum");
-    return;
-  }
-  executeOperation("max");
-};
-
-const handleCount = () => {
-  if (!canCalculate) {
-    alert("Please select at least 1 column to count values");
-    return;
-  }
-  executeOperation("count");
-};
-
-const handleMultiply = () => {
-  if (selectedCells.columns.length < 2) {
-    alert("Please select at least 2 columns to multiply");
-    return;
-  }
-  executeOperation("multiply");
-};
-
-const handleMedian = () => {
-  if (!canCalculate) {
-    alert("Please select at least 1 column to calculate median");
-    return;
-  }
-  executeOperation("median");
-};
-
   return (
-    <>
-      <Box sx={{ mb: 2 }}>
-        {/* Selection Info */}
-        <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f0f0", borderRadius: 1 }}>
-          <strong>Selected:</strong>
+    <Box>
+      {/* Selection Info */}
+      <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            Selection:
+          </Typography>
           {selectedCells.columns.length > 0 ? (
-            <>
-              <span style={{ marginLeft: "8px" }}>
-                {selectedCells.columns.length} column(s) -
-                {selectedCells.columns
-                  .map((colIndex) => currentData.headers[colIndex])
-                  .join(", ")}
-              </span>
-            </>
+            <Chip 
+              label={`${selectedCells.columns.length} column(s) selected`}
+              color="primary"
+              size="small"
+            />
           ) : (
-            <span style={{ marginLeft: "8px" }}>No columns selected</span>
+            <Typography variant="body2" color="text.secondary">
+              No columns selected
+            </Typography>
           )}
-        </Box>
+        </Stack>
+      </Paper>
 
-        <ButtonGroup variant="outlined" sx={{ mb: 1, mr: 1 }}>
-          <Button
-            onClick={handleConcatenate}
-            disabled={!canConcatenate}
-            title={
-              canConcatenate
-                ? "Concatenate selected columns"
-                : "Select 2+ columns"
-            }
-          >
-            Concatenate ({selectedCells.columns.length >= 2 ? "✓" : "✗"})
-          </Button>
-        </ButtonGroup>
-
-        <ButtonGroup variant="outlined" sx={{ mb: 1, mr: 1 }}>
-          <Button
-            onClick={handleTrimSingle}
-            disabled={!canTrimSingle}
-            title="Trim one column"
-          >
-            Trim Column ({selectedCells.columns.length === 1 ? "✓" : "✗"})
-          </Button>
-          <Button
-            onClick={handleTrimMultiple}
-            disabled={!canTrimMultiple}
-            title="Trim multiple columns"
-          >
-            Trim Columns ({selectedCells.columns.length >= 1 ? "✓" : "✗"})
-          </Button>
-          <Button
-            onClick={handleTrimAll}
-            disabled={!canTrimAll}
-            title="Trim all cells in table"
-            color="warning"
-          >
-            Trim All
-          </Button>
-          <Button
-            onClick={handleTrimCells}
-            disabled={!canTrimCells}
-            title="Trim selected cells"
-          >
-            Trim Cells ({selectedCells.cells.length > 0 ? "✓" : "✗"})
-          </Button>
-        </ButtonGroup>
-
-        <ButtonGroup variant="outlined" sx={{ mb: 1, mr: 1 }}>
-          <Button
-            onClick={handleChangeCase}
-            disabled={!canChangeCase}
-            title={
-              canChangeCase
-                ? "Change case of selected column"
-                : "Select exactly 1 column"
-            }
-          >
-            Change Case ({selectedCells.columns.length === 1 ? "✓" : "✗"})
-          </Button>
-        </ButtonGroup>
-
-        <ButtonGroup variant="outlined" sx={{ mb: 1, mr: 1 }}>
-          <Button
-            onClick={handlePivot}
-            disabled={currentData.headers.length < 3}
-            title="Create pivot table"
-            color="secondary"
-          >
-            📊 Create Pivot Table
-          </Button>
-        </ButtonGroup>
-
-        <ButtonGroup variant="outlined" sx={{ mb: 1, mr: 1 }}>
-  <Button
-    onClick={handleSum}
-    disabled={!canSum}
-    title={canSum ? "Sum selected columns" : "Select at least 1 column"}
-  >
-    Sum ({selectedCells.columns.length >= 1 ? "✓" : "✗"})
-  </Button>
-  <Button
-    onClick={handleAverage}
-    disabled={!canCalculate}
-    title={canCalculate ? "Average selected columns" : "Select at least 1 column"}
-  >
-    Average ({canCalculate ? "✓" : "✗"})
-  </Button>
-  <Button
-    onClick={handleMin}
-    disabled={!canCalculate}
-    title={canCalculate ? "Find minimum" : "Select at least 1 column"}
-  >
-    Min ({canCalculate ? "✓" : "✗"})
-  </Button>
-  <Button
-    onClick={handleMax}
-    disabled={!canCalculate}
-    title={canCalculate ? "Find maximum" : "Select at least 1 column"}
-  >
-    Max ({canCalculate ? "✓" : "✗"})
-  </Button>
-</ButtonGroup>
-
-<ButtonGroup variant="outlined" sx={{ mb: 1, mr: 1 }}>
-  <Button
-    onClick={handleCount}
-    disabled={!canCalculate}
-    title={canCalculate ? "Count non-empty values" : "Select at least 1 column"}
-  >
-    Count ({canCalculate ? "✓" : "✗"})
-  </Button>
-  <Button
-    onClick={handleMultiply}
-    disabled={selectedCells.columns.length < 2}
-    title={selectedCells.columns.length >= 2 ? "Multiply selected columns" : "Select at least 2 columns"}
-  >
-    Multiply ({selectedCells.columns.length >= 2 ? "✓" : "✗"})
-  </Button>
-  <Button
-    onClick={handleMedian}
-    disabled={!canCalculate}
-    title={canCalculate ? "Calculate median" : "Select at least 1 column"}
-  >
-    Median ({canCalculate ? "✓" : "✗"})
-  </Button>
-</ButtonGroup>
-
-        <Button variant="contained" color="primary" onClick={handleExport}>
-          Export Excel
+      {/* Main Toolbar */}
+      <Stack direction="row" spacing={2} flexWrap="wrap">
+        
+        {/* Transform Operations */}
+        <Button
+          variant="contained"
+          startIcon={<Transform />}
+          endIcon={<ArrowDropDown />}
+          onClick={handleTransformMenuOpen}
+          sx={{ minWidth: 140 }}
+        >
+          Transform
         </Button>
-      </Box>
+        <Menu
+          anchorEl={transformMenuAnchor}
+          open={Boolean(transformMenuAnchor)}
+          onClose={handleTransformMenuClose}
+        >
+          <MenuItem onClick={handleConcatenate} disabled={!canConcatenate}>
+            <ListItemIcon><Link /></ListItemIcon>
+            <ListItemText>Concatenate Columns</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleChangeCase} disabled={!canChangeCase}>
+            <ListItemIcon><TextFields /></ListItemIcon>
+            <ListItemText>Change Case</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => handleSort(true)} disabled={!canSort}>
+            <ListItemIcon><TrendingUp /></ListItemIcon>
+            <ListItemText>Sort Ascending</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => handleSort(false)} disabled={!canSort}>
+            <ListItemIcon><TrendingUp style={{ transform: 'rotate(180deg)' }} /></ListItemIcon>
+            <ListItemText>Sort Descending</ListItemText>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handlePivot} disabled={currentData.headers.length < 3}>
+            <ListItemIcon><PivotTableChart /></ListItemIcon>
+            <ListItemText>Create Pivot Table</ListItemText>
+          </MenuItem>
+        </Menu>
 
+        {/* Calculate Operations */}
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={<Calculate />}
+          endIcon={<ArrowDropDown />}
+          onClick={handleCalculateMenuOpen}
+          disabled={!canCalculate}
+          sx={{ minWidth: 140 }}
+        >
+          Calculate
+        </Button>
+        <Menu
+          anchorEl={calculateMenuAnchor}
+          open={Boolean(calculateMenuAnchor)}
+          onClose={handleCalculateMenuClose}
+        >
+          <MenuItem onClick={handleSum}>
+            <ListItemIcon><Functions /></ListItemIcon>
+            <ListItemText>Sum</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleAverage}>
+            <ListItemIcon><Analytics /></ListItemIcon>
+            <ListItemText>Average</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleMin}>
+            <ListItemIcon><TrendingUp style={{ transform: 'rotate(180deg)' }} /></ListItemIcon>
+            <ListItemText>Minimum</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleMax}>
+            <ListItemIcon><TrendingUp /></ListItemIcon>
+            <ListItemText>Maximum</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleCount}>
+            <ListItemIcon><Functions /></ListItemIcon>
+            <ListItemText>Count Values</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleMedian}>
+            <ListItemIcon><Analytics /></ListItemIcon>
+            <ListItemText>Median</ListItemText>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleMultiply} disabled={selectedCells.columns.length < 2}>
+            <ListItemIcon><Functions /></ListItemIcon>
+            <ListItemText>Multiply Columns</ListItemText>
+          </MenuItem>
+        </Menu>
+
+        {/* Clean Operations */}
+        <Button
+          variant="outlined"
+          startIcon={<Tune />}
+          endIcon={<ArrowDropDown />}
+          onClick={handleCleanMenuOpen}
+          sx={{ minWidth: 120 }}
+        >
+          Clean
+        </Button>
+        <Menu
+          anchorEl={cleanMenuAnchor}
+          open={Boolean(cleanMenuAnchor)}
+          onClose={handleCleanMenuClose}
+        >
+          <MenuItem onClick={handleTrim} disabled={!canTrim}>
+            <ListItemIcon><FormatClear /></ListItemIcon>
+            <ListItemText>Trim Selected</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleTrimAll}>
+            <ListItemIcon><FormatClear /></ListItemIcon>
+            <ListItemText>Trim All Cells</ListItemText>
+          </MenuItem>
+        </Menu>
+
+        {/* Export */}
+        <Button
+          variant="outlined"
+          startIcon={<GetApp />}
+          onClick={handleExport}
+          sx={{ minWidth: 120, ml: 'auto' }}
+        >
+          Export
+        </Button>
+      </Stack>
+
+      {/* Dialogs remain the same... */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>
           {currentOperation === "concatenate"
@@ -490,6 +486,7 @@ const handleMedian = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Pivot Dialog remains the same... */}
       <Dialog
         open={pivotDialogOpen}
         onClose={() => setPivotDialogOpen(false)}
@@ -593,7 +590,7 @@ const handleMedian = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </Box>
   );
 };
 
