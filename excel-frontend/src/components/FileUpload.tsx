@@ -1,6 +1,23 @@
-import React, { useRef } from 'react';
-import { Button, Box, Typography } from '@mui/material';
-import { CloudUpload } from '@mui/icons-material';
+import React, { useRef, useState } from 'react';
+import { 
+  Button, 
+  Box, 
+  Typography, 
+  Paper, 
+  Fade, 
+  Grow,
+  useTheme,
+  useMediaQuery,
+  Chip,
+  Alert,
+  CircularProgress
+} from '@mui/material';
+import { 
+  CloudUpload as CloudUploadIcon,
+  Description as FileIcon,
+  CheckCircle as CheckIcon,
+  Error as ErrorIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 import { ExcelData } from '../types/ExcelTypes';
 
@@ -10,10 +27,22 @@ interface FileUploadProps {
 
 const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileSelect = async (file: File) => {
     if (!file) return;
+    
+    setSelectedFile(file);
+    setUploading(true);
+    setUploadStatus('idle');
+    setStatusMessage('');
   
     try {
       const formData = new FormData();
@@ -45,39 +74,281 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
       // ✅ Handle new multi-sheet response format
       if (response.data.data) {
         console.log('✅ Calling onUpload with:', response.data.data);
+        setUploadStatus('success');
+        setStatusMessage('File uploaded successfully!');
         onUpload(response.data.data);
+        
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          setUploadStatus('idle');
+          setStatusMessage('');
+        }, 3000);
       } else {
         console.error('❌ No data found in response:', response.data);
+        setUploadStatus('error');
+        setStatusMessage('Upload failed: No data received');
       }
   
     } catch (error: any) {
       console.error('❌ Upload failed:', error);
       console.error('Error response:', error.response?.data);
+      setUploadStatus('error');
+      setStatusMessage(`Upload failed: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+    } finally {
+      setUploading(false);
     }
   };
-  
-  
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return extension === 'xlsx' || extension === 'xls' ? <FileIcon /> : <FileIcon />;
+  };
 
   return (
-    <Box textAlign="center">
+    <Box sx={{ width: '100%' }}>
+      {/* Upload Area */}
+      <Paper
+        elevation={dragActive ? 8 : 4}
+        sx={{
+          p: { xs: 3, md: 4 },
+          textAlign: 'center',
+          cursor: 'pointer',
+          border: `2px dashed ${dragActive ? theme.palette.primary.main : theme.palette.divider}`,
+          backgroundColor: dragActive 
+            ? theme.palette.primary.light + '08' 
+            : theme.palette.background.paper,
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            borderColor: theme.palette.primary.main,
+            backgroundColor: theme.palette.primary.light + '04',
+            transform: 'translateY(-2px)',
+              // Change all upload text to white on hover
+              '& .upload-main-text, & .upload-desc-text': {
+                color: '#fff',
+              },
+          },
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+        onClick={() => fileInputRef.current?.click()}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+      >
+        {/* Background Pattern */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `radial-gradient(circle at 20% 80%, ${theme.palette.primary.light}08 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, ${theme.palette.secondary.light}08 0%, transparent 50%)`,
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Upload Content */}
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Grow in={!uploading} timeout={500}>
+            <Box>
+              <CloudUploadIcon 
+                sx={{ 
+                  fontSize: { xs: '3rem', md: '4rem' }, 
+                  color: dragActive ? 'primary.main' : 'primary.light',
+                  mb: 2,
+                  transition: 'all 0.3s ease-in-out',
+                  transform: dragActive ? 'scale(1.1)' : 'scale(1)',
+                }} 
+              />
+              
+              <Typography 
+                variant={isMobile ? 'h5' : 'h4'} 
+                component="h2" 
+                gutterBottom 
+                className="upload-main-text"
+                sx={{ 
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  mb: 1
+                }}
+              >
+                {dragActive ? 'Drop your Excel file here' : 'Upload Excel File'}
+              </Typography>
+              
+              <Typography 
+                variant="body1" 
+                color="text.secondary" 
+                className="upload-desc-text"
+                sx={{ 
+                  mb: 3,
+                  maxWidth: 500,
+                  mx: 'auto'
+                }}
+              >
+                {dragActive 
+                  ? 'Release to upload your file'
+                  : 'Drag and drop your Excel file here, or click to browse'
+                }
+              </Typography>
+
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  label=".xlsx" 
+                  variant="outlined" 
+                  color="primary"
+                  size="small"
+                  sx={{
+                    transition: 'color 0.3s, background 0.3s, border 0.3s',
+                    color: 'black',
+                    borderWidth: 2,
+                    borderColor: 'primary.main',
+                    fontWeight: 600,
+                    backgroundColor: 'rgba(33, 150, 243, 0.08)', // more visible blue
+                    '&:hover': {
+                      color: '#fff',
+                      backgroundColor: 'primary.main',
+                      borderColor: 'primary.main',
+                    }
+                  }}
+                />
+                <Chip 
+                  label=".xls" 
+                  variant="outlined" 
+                  color="primary"
+                  size="small"
+                  sx={{
+                    transition: 'color 0.3s, background 0.3s, border 0.3s',
+                    color: 'black',
+                    borderWidth: 2,
+                    borderColor: 'primary.main',
+                    fontWeight: 600,
+                    backgroundColor: 'rgba(33, 150, 243, 0.08)',
+                    '&:hover': {
+                      color: '#fff',
+                      backgroundColor: 'primary.main',
+                      borderColor: 'primary.main',
+                    }
+                  }}
+                />
+              </Box>
+            </Box>
+          </Grow>
+
+          {/* Uploading State */}
+          <Fade in={uploading} timeout={300}>
+            <Box sx={{ display: uploading ? 'flex' : 'none', flexDirection: 'column', alignItems: 'center' }}>
+              <CircularProgress size={60} sx={{ mb: 2 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                Uploading...
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Please wait while we process your file
+              </Typography>
+            </Box>
+          </Fade>
+        </Box>
+      </Paper>
+
+      {/* Hidden File Input */}
       <input
         type="file"
         accept=".xlsx,.xls"
         ref={fileInputRef}
-        onChange={handleFileSelect}
+        onChange={handleFileInputChange}
         style={{ display: 'none' }}
       />
-      <Button
-        variant="contained"
-        startIcon={<CloudUpload />}
-        onClick={() => fileInputRef.current?.click()}
-        size="large"
-      >
-        Upload Excel File
-      </Button>
-      <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-        Supported formats: .xlsx, .xls
-      </Typography>
+
+      {/* Selected File Info */}
+      {selectedFile && (
+        <Grow in={!!selectedFile} timeout={500}>
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              mt: 2, 
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              background: theme.palette.background.paper,
+            }}
+          >
+            {getFileIcon(selectedFile.name)}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                {selectedFile.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {formatFileSize(selectedFile.size)}
+              </Typography>
+            </Box>
+          </Paper>
+        </Grow>
+      )}
+
+      {/* Status Messages */}
+      {uploadStatus !== 'idle' && (
+        <Fade in={true} timeout={300}>
+          <Box sx={{ mt: 2 }}>
+            <Alert 
+              severity={uploadStatus === 'success' ? 'success' : 'error'}
+              icon={uploadStatus === 'success' ? <CheckIcon /> : <ErrorIcon />}
+              sx={{ 
+                borderRadius: 2,
+                '& .MuiAlert-message': {
+                  fontWeight: 500
+                }
+              }}
+            >
+              {statusMessage}
+            </Alert>
+          </Box>
+        </Fade>
+      )}
+
+      {/* Help Text */}
+      <Box sx={{ mt: 3, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ opacity: 1, color: 'white' }}>
+          Supported formats: .xlsx, .xls • Maximum file size: 50MB
+        </Typography>
+      </Box>
     </Box>
   );
 };
