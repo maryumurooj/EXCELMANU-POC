@@ -23,9 +23,16 @@ import {
   Tooltip,
   Fade,
   Grow,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -35,10 +42,15 @@ import {
   Functions as MathIcon,
   TableChart as PivotIcon,
   Download as ExportIcon,
-  ExpandMore as ExpandMoreIcon,
   Info as InfoIcon,
   Warning as WarningIcon,
   CheckCircle as CheckIcon,
+  KeyboardArrowUp as ArrowUpIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  FormatBold as BoldIcon,
+  FormatItalic as ItalicIcon,
+  Calculate as CalculateIcon,
+  Analytics as AnalyticsIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 import { ExcelData, OperationRequest } from "../types/ExcelTypes";
@@ -74,6 +86,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     valueColumn: 2,
     aggregation: "sum",
   });
+  const [operationsExpanded, setOperationsExpanded] = useState(true);
 
   // ✅ NOW safe to do early return after hooks
   if (!currentData || !currentData.headers) {
@@ -327,382 +340,327 @@ const Toolbar: React.FC<ToolbarProps> = ({
     return "success";
   };
 
+  // Operations data for table view
+  const operationsData = [
+    {
+      category: "Text Operations",
+      icon: <TextIcon />,
+      operations: [
+        {
+          name: "Concatenate",
+          icon: <AddIcon />,
+          handler: handleConcatenate,
+          enabled: canConcatenate,
+          tooltip: "Combine multiple columns into one",
+          requires: "2+ columns"
+        },
+        {
+          name: "Trim",
+          icon: <TrimIcon />,
+          handler: handleTrimSingle,
+          enabled: canTrimSingle,
+          tooltip: "Remove extra spaces from column",
+          requires: "1 column"
+        },
+        {
+          name: "Trim Multiple",
+          icon: <TrimIcon />,
+          handler: handleTrimMultiple,
+          enabled: canTrimMultiple,
+          tooltip: "Remove spaces from multiple columns",
+          requires: "1+ columns"
+        },
+        {
+          name: "Trim All",
+          icon: <TrimIcon />,
+          handler: handleTrimAll,
+          enabled: canTrimAll,
+          tooltip: "Remove all extra spaces from dataset",
+          requires: "any data"
+        },
+        {
+          name: "Trim Cells",
+          icon: <TrimIcon />,
+          handler: handleTrimCells,
+          enabled: canTrimCells,
+          tooltip: "Remove spaces from selected cells",
+          requires: "selected cells"
+        }
+      ]
+    },
+    {
+      category: "Case Operations",
+      icon: <BoldIcon />,
+      operations: [
+        {
+          name: "Change Case",
+          icon: <TextIcon />,
+          handler: handleChangeCase,
+          enabled: canChangeCase,
+          tooltip: "Change text case (UPPER, lower, Title)",
+          requires: "1 column"
+        }
+      ]
+    },
+    {
+      category: "Sorting",
+      icon: <SortIcon />,
+      operations: [
+        {
+          name: "Sort ↑",
+          icon: <ArrowUpIcon />,
+          handler: () => handleSort(true),
+          enabled: canSort,
+          tooltip: "Sort data ascending (A-Z, 1-9)",
+          requires: "1 column"
+        },
+        {
+          name: "Sort ↓",
+          icon: <ArrowDownIcon />,
+          handler: () => handleSort(false),
+          enabled: canSort,
+          tooltip: "Sort data descending (Z-A, 9-1)",
+          requires: "1 column"
+        }
+      ]
+    },
+    {
+      category: "Mathematical",
+      icon: <CalculateIcon />,
+      operations: [
+        {
+          name: "Sum",
+          icon: <MathIcon />,
+          handler: handleSum,
+          enabled: canSum,
+          tooltip: "Calculate sum of numeric values",
+          requires: "1+ numeric columns"
+        },
+        {
+          name: "Average",
+          icon: <MathIcon />,
+          handler: handleAverage,
+          enabled: canCalculate,
+          tooltip: "Calculate average (mean) of values",
+          requires: "1+ numeric columns"
+        },
+        {
+          name: "Min",
+          icon: <MathIcon />,
+          handler: handleMin,
+          enabled: canCalculate,
+          tooltip: "Find the smallest value",
+          requires: "1+ numeric columns"
+        },
+        {
+          name: "Max",
+          icon: <MathIcon />,
+          handler: handleMax,
+          enabled: canCalculate,
+          tooltip: "Find the largest value",
+          requires: "1+ numeric columns"
+        },
+        {
+          name: "Count",
+          icon: <MathIcon />,
+          handler: handleCount,
+          enabled: canCalculate,
+          tooltip: "Count non-empty values",
+          requires: "1+ columns"
+        },
+        {
+          name: "Multiply",
+          icon: <MathIcon />,
+          handler: handleMultiply,
+          enabled: selectedCells.columns.length >= 2,
+          tooltip: "Multiply values across columns",
+          requires: "2+ numeric columns"
+        },
+        {
+          name: "Median",
+          icon: <MathIcon />,
+          handler: handleMedian,
+          enabled: canCalculate,
+          tooltip: "Calculate median (middle value)",
+          requires: "1+ numeric columns"
+        }
+      ]
+    },
+    {
+      category: "Advanced",
+      icon: <AnalyticsIcon />,
+      operations: [
+        {
+          name: "Pivot Table",
+          icon: <PivotIcon />,
+          handler: handlePivot,
+          enabled: currentData.headers.length >= 3,
+          tooltip: "Create a pivot table to summarize data",
+          requires: "3+ columns"
+        }
+      ]
+    }
+  ];
+
   return (
     <>
-      {/* Selection Info */}
+      {/* Selection Info - Compact */}
       <Paper 
         elevation={2} 
         sx={{ 
-          mb: 3, 
-          p: 3,
+          mb: 2, 
+          p: 2,
           background: theme.palette.background.paper,
           border: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <InfoIcon color="primary" fontSize="small" />
-          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Current Selection
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-          <Chip 
-            label={`${selectedCells.columns.length} column(s)`}
-            color={getStatusColor()}
-            size="medium"
-            variant="outlined"
-            sx={{ fontWeight: 600 }}
-          />
-          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
-            {getSelectedColumnsText()}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.8 }}>
-          💡 <strong>Tip:</strong> Click on any column header or use the quick selection chips below to select columns for operations.
-        </Typography>
-      </Paper>
-
-      {/* Operations Accordion */}
-      <Accordion defaultExpanded sx={{ mb: 3 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <AddIcon color="primary" />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Data Operations
+            <InfoIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              Selection: {selectedCells.columns.length} column(s)
             </Typography>
             <Chip 
-              label="Click to expand" 
-              size="small" 
-              variant="outlined" 
-              color="primary"
-              sx={{ ml: 1 }}
+              label={getSelectedColumnsText()}
+              color={getStatusColor()}
+              size="small"
+              variant="outlined"
+              sx={{ fontWeight: 500 }}
             />
           </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontStyle: 'italic' }}>
-            Select columns first, then choose an operation. Each operation type has specific requirements shown below.
-          </Typography>
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            
-            {/* Text Operations */}
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                📝 Text Operations
-                <Chip label="Text & String Manipulation" size="small" variant="outlined" />
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Manipulate text data in your columns with various operations.
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Tooltip title={canConcatenate ? "Combine multiple columns into one" : "Select 2+ columns to concatenate"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<AddIcon />}
-                      onClick={handleConcatenate}
-                      disabled={!canConcatenate}
-                      sx={{ 
-                        minWidth: 160,
-                        borderColor: canConcatenate ? 'primary.main' : 'divider',
-                        color: canConcatenate ? 'primary.main' : 'text.disabled'
-                      }}
-                    >
-                      Concatenate Columns
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title="Remove extra spaces from column data">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<TrimIcon />}
-                      onClick={handleTrimSingle}
-                      disabled={!canTrimSingle}
-                      sx={{ minWidth: 140 }}
-                    >
-                      Trim Column
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title="Remove spaces from multiple columns at once">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<TrimIcon />}
-                      onClick={handleTrimMultiple}
-                      disabled={!canTrimMultiple}
-                      sx={{ minWidth: 160 }}
-                    >
-                      Trim Multiple Columns
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title="Remove all extra spaces from the entire dataset">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      color="warning"
-                      startIcon={<TrimIcon />}
-                      onClick={handleTrimAll}
-                      disabled={!canTrimAll}
-                      sx={{ minWidth: 120 }}
-                    >
-                      Trim All Data
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title="Remove spaces from specific selected cells only">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<TrimIcon />}
-                      onClick={handleTrimCells}
-                      disabled={!canTrimCells}
-                      sx={{ minWidth: 140 }}
-                    >
-                      Trim Selected Cells
-                    </Button>
-                  </span>
-                </Tooltip>
-              </Box>
-            </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<ExportIcon />}
+            onClick={handleExport}
+            size="small"
+            sx={{ 
+              px: 2,
+              py: 0.5,
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              borderRadius: 1.5,
+            }}
+          >
+            Export
+          </Button>
+        </Box>
+      </Paper>
 
-            {/* Case Operations */}
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                🔤 Case Operations
-                <Chip label="Text Case Transformation" size="small" variant="outlined" />
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Transform text case for better consistency and readability.
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Tooltip title={canChangeCase ? "Change text case (UPPER, lower, Title)" : "Select exactly 1 column to change case"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<TextIcon />}
-                      onClick={handleChangeCase}
-                      disabled={!canChangeCase}
-                      sx={{ minWidth: 160 }}
-                    >
-                      Change Text Case
-                    </Button>
-                  </span>
-                </Tooltip>
-              </Box>
-            </Box>
-
-            {/* Sorting */}
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                🔄 Sorting
-                <Chip label="Data Organization" size="small" variant="outlined" />
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Organize your data by sorting columns in ascending or descending order.
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Tooltip title="Sort data from lowest to highest (A-Z, 1-9)">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<SortIcon />}
-                      onClick={() => handleSort(true)}
-                      disabled={!canSort}
-                      sx={{ minWidth: 140 }}
-                    >
-                      Sort Ascending ↑
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title="Sort data from highest to lowest (Z-A, 9-1)">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<SortIcon />}
-                      onClick={() => handleSort(false)}
-                      disabled={!canSort}
-                      sx={{ minWidth: 140 }}
-                    >
-                      Sort Descending ↓
-                    </Button>
-                  </span>
-                </Tooltip>
-              </Box>
-            </Box>
-
-            {/* Mathematical Operations */}
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                🧮 Mathematical Operations
-                <Chip label="Calculations & Statistics" size="small" variant="outlined" />
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Perform mathematical calculations and statistical analysis on numeric columns.
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Tooltip title={canSum ? "Calculate sum of numeric values" : "Select at least 1 numeric column"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<MathIcon />}
-                      onClick={handleSum}
-                      disabled={!canSum}
-                      sx={{ minWidth: 100 }}
-                    >
-                      Sum
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title={canCalculate ? "Calculate average (mean) of values" : "Select at least 1 numeric column"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<MathIcon />}
-                      onClick={handleAverage}
-                      disabled={!canCalculate}
-                      sx={{ minWidth: 120 }}
-                    >
-                      Average
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title={canCalculate ? "Find the smallest value" : "Select at least 1 numeric column"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<MathIcon />}
-                      onClick={handleMin}
-                      disabled={!canCalculate}
-                      sx={{ minWidth: 100 }}
-                    >
-                      Minimum
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title={canCalculate ? "Find the largest value" : "Select at least 1 numeric column"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<MathIcon />}
-                      onClick={handleMax}
-                      disabled={!canCalculate}
-                      sx={{ minWidth: 100 }}
-                    >
-                      Maximum
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title={canCalculate ? "Count non-empty values" : "Select at least 1 column"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<MathIcon />}
-                      onClick={handleCount}
-                      disabled={!canCalculate}
-                      sx={{ minWidth: 100 }}
-                    >
-                      Count
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title={selectedCells.columns.length >= 2 ? "Multiply values across columns" : "Select at least 2 numeric columns"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<MathIcon />}
-                      onClick={handleMultiply}
-                      disabled={selectedCells.columns.length < 2}
-                      sx={{ minWidth: 140 }}
-                    >
-                      Multiply
-                    </Button>
-                  </span>
-                </Tooltip>
-                
-                <Tooltip title={canCalculate ? "Calculate median (middle value)" : "Select at least 1 numeric column"}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      startIcon={<MathIcon />}
-                      onClick={handleMedian}
-                      disabled={!canCalculate}
-                      sx={{ minWidth: 120 }}
-                    >
-                      Median
-                    </Button>
-                  </span>
-                </Tooltip>
-              </Box>
-            </Box>
-
-            {/* Advanced Operations */}
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                📊 Advanced Operations
-                <Chip label="Complex Data Analysis" size="small" variant="outlined" />
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Create pivot tables and perform advanced data analysis operations.
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Tooltip title="Create a pivot table to summarize and analyze data">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      startIcon={<PivotIcon />}
-                      onClick={handlePivot}
-                      disabled={currentData.headers.length < 3}
-                      sx={{ minWidth: 180 }}
-                    >
-                      Create Pivot Table
-                    </Button>
-                  </span>
-                </Tooltip>
-              </Box>
-            </Box>
-          </Box>
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Export Section */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<ExportIcon />}
-          onClick={handleExport}
-          sx={{ 
-            px: 3,
-            py: 1.5,
-            fontSize: '1rem',
-            fontWeight: 600,
-            borderRadius: 2,
-            boxShadow: 2,
-            '&:hover': {
-              boxShadow: 4,
-              transform: 'translateY(-1px)',
-            },
-            transition: 'all 0.2s ease-in-out'
-          }}
-        >
-          Export Excel
-        </Button>
-      </Box>
+             {/* Operations Table - Toggleable */}
+       <Paper 
+         elevation={2} 
+         sx={{ 
+           mb: 2,
+           background: theme.palette.background.paper,
+           border: `1px solid ${theme.palette.divider}`,
+         }}
+       >
+         <Box 
+           sx={{ 
+             p: 2, 
+             borderBottom: operationsExpanded ? `1px solid ${theme.palette.divider}` : 'none',
+             cursor: 'pointer',
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'space-between',
+             '&:hover': {
+               backgroundColor: theme.palette.action.hover,
+             }
+           }}
+           onClick={() => setOperationsExpanded(!operationsExpanded)}
+         >
+           <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+             <AddIcon color="primary" />
+             Data Operations
+           </Typography>
+           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+             <Typography variant="caption" color="text.secondary">
+               {operationsExpanded ? 'Click to collapse' : 'Click to expand'}
+             </Typography>
+             <Box 
+               sx={{ 
+                 transform: operationsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                 transition: 'transform 0.2s ease-in-out',
+                 display: 'flex',
+                 alignItems: 'center'
+               }}
+             >
+               <ArrowDownIcon fontSize="small" />
+             </Box>
+           </Box>
+         </Box>
+         
+         {operationsExpanded && (
+           <TableContainer>
+             <Table size="small">
+               <TableHead>
+                 <TableRow>
+                   <TableCell sx={{ fontWeight: 600, width: '20%' }}>Category</TableCell>
+                   <TableCell sx={{ fontWeight: 600, width: '60%' }}>Operations</TableCell>
+                   <TableCell sx={{ fontWeight: 600, width: '20%' }}>Requirements</TableCell>
+                 </TableRow>
+               </TableHead>
+               <TableBody>
+                 {operationsData.map((category, categoryIndex) => (
+                   <TableRow key={categoryIndex} sx={{ '&:hover': { backgroundColor: theme.palette.action.hover } }}>
+                     <TableCell>
+                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                         {category.icon}
+                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                           {category.category}
+                         </Typography>
+                       </Box>
+                     </TableCell>
+                     <TableCell>
+                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                         {category.operations.map((operation, opIndex) => (
+                           <Tooltip 
+                             key={opIndex} 
+                             title={`${operation.tooltip} (Requires: ${operation.requires})`}
+                             placement="top"
+                           >
+                             <span>
+                               <Button
+                                 variant="outlined"
+                                 size="small"
+                                 startIcon={operation.icon}
+                                 onClick={operation.handler}
+                                 disabled={!operation.enabled}
+                                 sx={{ 
+                                   minWidth: 'auto',
+                                   px: 1.5,
+                                   py: 0.5,
+                                   fontSize: '0.75rem',
+                                   borderRadius: 1,
+                                   borderColor: operation.enabled ? 'primary.main' : 'divider',
+                                   color: operation.enabled ? 'primary.main' : 'text.disabled',
+                                   '&:hover': operation.enabled ? {
+                                     backgroundColor: 'primary.main',
+                                     color: 'white',
+                                   } : {}
+                                 }}
+                               >
+                                 {operation.name}
+                               </Button>
+                             </span>
+                           </Tooltip>
+                         ))}
+                       </Box>
+                     </TableCell>
+                     <TableCell>
+                       <Typography variant="caption" color="text.secondary">
+                         {category.operations.map(op => op.requires).join(', ')}
+                       </Typography>
+                     </TableCell>
+                   </TableRow>
+                 ))}
+               </TableBody>
+             </Table>
+           </TableContainer>
+         )}
+       </Paper>
 
       {/* Dialogs */}
       <Dialog 

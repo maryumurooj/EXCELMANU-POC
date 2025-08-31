@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ExcelDataManipulator.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9a1f90b13a0aecd59149110b54ac0b5bc74955e4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e5cc9721303ecfe4042ec673f766cd01c65b3659")]
 [assembly: System.Reflection.AssemblyProductAttribute("ExcelDataManipulator.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ExcelDataManipulator.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -3,11 +3,9 @@ import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
   GridReadyEvent, 
-  CellClickedEvent, 
   SelectionChangedEvent,
   ModuleRegistry,
   AllCommunityModule,
-  Column,
   CellValueChangedEvent 
 } from 'ag-grid-community';
 import { 
@@ -22,7 +20,8 @@ import {
   Grow,
   Alert,
   IconButton,
-  Tooltip
+  Tooltip,
+  Container
 } from '@mui/material';
 import { 
   TableChart as TableIcon,
@@ -54,6 +53,16 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Calculate optimal grid height based on data size
+  const getGridHeight = useCallback(() => {
+    const rowCount = data.data.length;
+    const columnCount = data.headers.length;
+    
+    // Always use viewport-based height to ensure full space utilization
+    // This ensures the grid takes up the full available space regardless of data size
+    return 'calc(100vh - 400px)'; // Adjusted to account for all UI elements
+  }, [data.data.length]);
 
   const getCurrentDataWithEdits = useCallback(() => {
     const editedData = data.data.map((row, rowIndex) => {
@@ -124,7 +133,9 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
     return data.headers.map((header, index) => ({
       field: `col_${index}`,
       headerName: header,
-      width: 150,
+      width: 180, // Increased default width for better readability
+      minWidth: 120,
+      maxWidth: 400, // Increased max width
       editable: true,
       sortable: true,
       filter: true,
@@ -132,6 +143,14 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
       checkboxSelection: index === 0,
       headerCheckboxSelection: index === 0,
       headerClass: selectedColumns.includes(`col_${index}`) ? 'selected-column-header' : '',
+      cellStyle: {
+        padding: '8px 12px',
+        fontSize: '14px',
+        lineHeight: '1.4',
+        whiteSpace: 'normal', // Allow text wrapping
+        wordBreak: 'break-word', // Break long words
+        verticalAlign: 'middle',
+      },
       onCellClicked: (params: any) => {
         const field = params.colDef.field;
         let newSelectedColumns: string[];
@@ -217,9 +236,13 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
     });
   };
 
+  // Determine if we should show pagination based on data size
+  const shouldShowPagination = data.data.length > 50; // Increased threshold for better UX
+  const pageSize = data.data.length <= 25 ? data.data.length : 50; // Show all data for smaller datasets
+
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Grid Header */}
+    <Container maxWidth="xl" sx={{ px: { xs: 1, md: 2 } }}>
+      {/* Grid Header - Compact */}
       <Paper 
         elevation={2} 
         sx={{ 
@@ -229,10 +252,10 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           border: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TableIcon color="primary" />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               Data Grid
             </Typography>
             <Chip 
@@ -250,22 +273,22 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
               startIcon={<ClearIcon />}
               onClick={clearSelection}
               size="small"
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: 1.5 }}
             >
               Clear Selection
             </Button>
           )}
         </Box>
 
-        {/* Selection Info */}
+        {/* Selection Info - Compact */}
         <Fade in={selectedColumns.length > 0} timeout={300}>
           <Box sx={{ 
             display: selectedColumns.length > 0 ? 'flex' : 'none',
             alignItems: 'center', 
             gap: 1,
-            p: 1.5,
+            p: 1,
             backgroundColor: theme.palette.primary.light + '08',
-            borderRadius: 2,
+            borderRadius: 1.5,
             border: `1px solid ${theme.palette.primary.light + '20'}`,
           }}>
             <InfoIcon color="primary" fontSize="small" />
@@ -279,7 +302,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         </Fade>
       </Paper>
 
-      {/* Quick Column Select */}
+      {/* Quick Column Select - Compact */}
       <Paper 
         elevation={1} 
         sx={{ 
@@ -289,14 +312,14 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           border: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
           <TipIcon color="primary" fontSize="small" />
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             Quick Column Selection
           </Typography>
         </Box>
         
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
           {data.headers.map((header, index) => (
             <Tooltip key={`col_${index}`} title={`Click to select column: ${header}`}>
               <Chip
@@ -304,12 +327,14 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
                 onClick={(e: any) => handleColumnHeaderClick(`col_${index}`, e)}
                 color={selectedColumns.includes(`col_${index}`) ? 'primary' : 'default'}
                 variant={selectedColumns.includes(`col_${index}`) ? 'filled' : 'outlined'}
+                size="small"
                 sx={{ 
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out',
+                  fontSize: '0.75rem',
                   '&:hover': {
                     transform: 'translateY(-1px)',
-                    boxShadow: 2,
+                    boxShadow: 1,
                   }
                 }}
               />
@@ -322,34 +347,41 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         </Typography>
       </Paper>
 
-      {/* Data Grid */}
-      <Paper 
-        elevation={3} 
-        sx={{ 
-          overflow: 'hidden',
-          borderRadius: 3,
-          border: `1px solid ${theme.palette.divider}`,
-          height: 'calc(100vh - 400px)', // Full screen height
-          minHeight: '600px',
-        }}
-      >
-        <div 
-          className="ag-theme-quartz" 
-          style={{ 
-            height: '100%', 
-            width: '100%',
-            '--ag-header-height': '48px',
-            '--ag-row-height': '40px',
-            '--ag-header-background-color': theme.palette.primary.main,
-            '--ag-header-foreground-color': 'white',
-            '--ag-header-cell-hover-background-color': theme.palette.primary.dark,
-            '--ag-row-hover-color': theme.palette.primary.light + '10',
-            '--ag-selected-row-background-color': theme.palette.primary.light + '20',
-            '--ag-font-family': theme.typography.fontFamily,
-            '--ag-font-size': '14px',
-            '--ag-border-color': theme.palette.divider,
-          } as React.CSSProperties}
-        >
+             {/* Data Grid - Full Space Utilization */}
+       <Paper 
+         elevation={3} 
+         sx={{ 
+           overflow: 'hidden',
+           borderRadius: 2,
+           border: `1px solid ${theme.palette.divider}`,
+           height: getGridHeight(),
+           minHeight: '400px', // Increased minimum height
+           maxHeight: 'none', // Remove max height constraint
+           mx: 'auto',
+           width: '100%',
+         }}
+       >
+                 <div 
+           className="ag-theme-quartz" 
+           style={{ 
+             height: '100%', 
+             width: '100%',
+             '--ag-header-height': '48px',
+             '--ag-row-height': data.data.length <= 25 ? '50px' : '44px', // Larger rows for small datasets
+             '--ag-header-background-color': theme.palette.primary.main,
+             '--ag-header-foreground-color': 'white',
+             '--ag-header-cell-hover-background-color': theme.palette.primary.dark,
+             '--ag-row-hover-color': theme.palette.primary.light + '10',
+             '--ag-selected-row-background-color': theme.palette.primary.light + '20',
+             '--ag-font-family': theme.typography.fontFamily,
+             '--ag-font-size': data.data.length <= 25 ? '16px' : '14px', // Larger font for small datasets
+             '--ag-border-color': theme.palette.divider,
+             '--ag-cell-horizontal-border': 'solid',
+             '--ag-cell-horizontal-border-color': theme.palette.divider,
+             '--ag-cell-vertical-border': 'solid',
+             '--ag-cell-vertical-border-color': theme.palette.divider,
+           } as React.CSSProperties}
+         >
           <AgGridReact
             rowData={rowData}
             columnDefs={columnDefs}
@@ -361,37 +393,49 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
             suppressRowClickSelection={false}
             enableRangeSelection={true}
             enableCellTextSelection={true}
-            defaultColDef={{
-              sortable: true,
-              filter: true,
-              resizable: true,
-              editable: true,
-              minWidth: 120,
-              maxWidth: 300,
-            }}
+                         defaultColDef={{
+               sortable: true,
+               filter: true,
+               resizable: true,
+               editable: true,
+               minWidth: 120,
+               maxWidth: 400,
+               autoHeight: false,
+               cellStyle: {
+                 padding: data.data.length <= 25 ? '12px 16px' : '8px 12px', // More padding for small datasets
+                 fontSize: data.data.length <= 25 ? '16px' : '14px', // Larger font for small datasets
+                 lineHeight: '1.4',
+                 whiteSpace: 'normal',
+                 wordBreak: 'break-word',
+                 verticalAlign: 'middle',
+                 overflow: 'hidden',
+                 textOverflow: 'ellipsis',
+               },
+             }}
             animateRows={true}
             undoRedoCellEditing={true}
             undoRedoCellEditingLimit={20}
-            pagination={true}
-            paginationPageSize={100}
-            paginationPageSizeSelector={[50, 100, 200, 500]}
-            suppressPaginationPanel={false}
-            rowBuffer={50}
+            pagination={shouldShowPagination}
+            paginationPageSize={pageSize}
+            paginationPageSizeSelector={shouldShowPagination ? [25, 50, 100, 200] : undefined}
+            suppressPaginationPanel={!shouldShowPagination}
+            rowBuffer={20}
             suppressAnimationFrame={false}
             suppressColumnVirtualisation={false}
             suppressRowVirtualisation={false}
+            domLayout="normal"
           />
         </div>
       </Paper>
 
-      {/* Edits Info */}
+      {/* Edits Info - Compact */}
       {cellEdits.size > 0 && (
         <Grow in={cellEdits.size > 0} timeout={500}>
           <Alert 
             severity="info" 
             sx={{ 
               mt: 2, 
-              borderRadius: 2,
+              borderRadius: 1.5,
               '& .MuiAlert-message': {
                 fontWeight: 500
               }
@@ -412,6 +456,9 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           text-transform: uppercase;
           letter-spacing: 0.5px;
           font-size: 12px;
+          padding: 8px 12px;
+          border-right: 1px solid ${theme.palette.divider};
+          border-bottom: 1px solid ${theme.palette.divider};
         }
         
         .ag-theme-quartz .ag-header-cell-resize::after {
@@ -419,14 +466,21 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         }
         
         .ag-theme-quartz .ag-cell {
-          padding: 8px 12px;
-          border-right: 1px solid ${theme.palette.divider};
-          border-bottom: 1px solid ${theme.palette.divider};
+          padding: 8px 12px !important;
+          border-right: 1px solid ${theme.palette.divider} !important;
+          border-bottom: 1px solid ${theme.palette.divider} !important;
+          font-size: 14px !important;
+          line-height: 1.4 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          vertical-align: middle !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
         }
         
         .ag-theme-quartz .ag-cell:focus {
-          outline: 2px solid ${theme.palette.primary.main};
-          outline-offset: -2px;
+          outline: 2px solid ${theme.palette.primary.main} !important;
+          outline-offset: -2px !important;
         }
         
         .ag-theme-quartz .ag-row-selected {
@@ -443,22 +497,32 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         }
         
         .ag-theme-quartz .ag-paging-panel {
-          background-color: ${theme.palette.background.paper};
-          border-top: 1px solid ${theme.palette.divider};
-          padding: 12px;
+          background-color: ${theme.palette.background.paper} !important;
+          border-top: 1px solid ${theme.palette.divider} !important;
+          padding: 8px 12px !important;
+          font-size: 14px !important;
         }
         
         .ag-theme-quartz .ag-paging-button {
-          border-radius: 4px;
-          margin: 0 2px;
+          border-radius: 4px !important;
+          margin: 0 2px !important;
+          padding: 4px 8px !important;
         }
         
         .ag-theme-quartz .ag-paging-button.ag-current {
-          background-color: ${theme.palette.primary.main};
-          color: white;
+          background-color: ${theme.palette.primary.main} !important;
+          color: white !important;
+        }
+        
+        .ag-theme-quartz .ag-paging-page-summary-panel {
+          font-size: 14px !important;
+        }
+        
+        .ag-theme-quartz .ag-paging-page-size-select {
+          font-size: 14px !important;
         }
       `}</style>
-    </Box>
+    </Container>
   );
 };
 

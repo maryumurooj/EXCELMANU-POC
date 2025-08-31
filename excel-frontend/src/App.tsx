@@ -200,25 +200,25 @@ function App() {
       <Box sx={{ 
         minHeight: '100vh', 
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        py: { xs: 2, md: 3 }
+        py: { xs: 1.5, md: 2 }
       }}>
         <Container maxWidth="xl">
-          {/* Header Section */}
+          {/* Header Section - Compact */}
           <Box sx={{ 
             textAlign: 'center', 
-            mb: { xs: 3, md: 4 },
+            mb: { xs: 2, md: 3 },
             color: 'white'
           }}>
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center', 
-              mb: 2,
-              gap: 2
+              mb: 1.5,
+              gap: 1.5
             }}>
-              <TableIcon sx={{ fontSize: { xs: '2.5rem', md: '3.5rem' } }} />
+              <TableIcon sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }} />
               <Typography 
-                variant={isMobile ? 'h3' : 'h1'} 
+                variant={isMobile ? 'h4' : 'h3'} 
                 component="h1" 
                 sx={{ 
                   fontWeight: 700,
@@ -229,52 +229,46 @@ function App() {
               </Typography>
             </Box>
             <Typography 
-              variant="h6" 
+              variant="body1" 
               sx={{ 
                 opacity: 0.95,
                 fontWeight: 400,
                 textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                mb: 2
-              }}
-            >
-               Excel data processing and analysis tool
-            </Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ 
-                opacity: 0.9,
-                maxWidth: 800,
+                mb: 1.5,
+                maxWidth: 600,
                 mx: 'auto',
-                lineHeight: 1.6
+                lineHeight: 1.5
               }}
             >
               Upload your Excel files to perform advanced data operations including text manipulation, 
-              mathematical calculations, pivot tables, and more. Perfect for data analysts, researchers, and business professionals.
+              mathematical calculations, pivot tables, and more.
             </Typography>
           </Box>
           
           {/* File Upload Section */}
-          <Box sx={{ mb: { xs: 3, md: 4 } }}>
+          <Box sx={{ mb: { xs: 2, md: 3 } }}>
             <FileUpload onUpload={handleFileUpload} />
           </Box>
 
-          {/* Data Display Section */}
+          {/* Data Display Section - Centered */}
           {excelData && excelData.headers && excelData.headers.length > 0 && (
             <Paper 
-              elevation={8} 
+              elevation={6} 
               sx={{ 
                 p: { xs: 2, md: 3 },
                 background: 'rgba(255, 255, 255, 0.98)',
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)'
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                mx: 'auto',
+                maxWidth: '100%'
               }}
             >
-              {/* Sheet Tabs */}
+              {/* Sheet Tabs - Compact */}
               {sheets.length > 1 && (
                 <Box sx={{ 
                   borderBottom: 2, 
                   borderColor: 'primary.main', 
-                  mb: 3,
+                  mb: 2.5,
                   background: 'rgba(25, 118, 210, 0.06)',
                   borderRadius: 2,
                   p: 1
@@ -289,7 +283,7 @@ function App() {
                     scrollButtons="auto"
                     sx={{
                       '& .MuiTab-root': {
-                        minWidth: { xs: 120, md: 160 },
+                        minWidth: { xs: 100, md: 140 },
                         mx: 0.5,
                       },
                       '& .MuiTabs-indicator': {
@@ -305,9 +299,9 @@ function App() {
                           <Box sx={{ 
                             display: 'flex', 
                             alignItems: 'center', 
-                            gap: 1 
+                            gap: 0.5 
                           }}>
-                            <FileIcon sx={{ fontSize: 16 }} />
+                            <FileIcon sx={{ fontSize: 14 }} />
                             {sheetName}
                           </Box>
                         }
@@ -326,7 +320,7 @@ function App() {
               )}
               
               {/* Toolbar */}
-              <Box sx={{ mb: 3 }}>
+              <Box sx={{ mb: 2.5 }}>
                 <Toolbar 
                   selectedCells={selectedCells}
                   onDataUpdate={handleDataUpdate}
@@ -334,8 +328,8 @@ function App() {
                 />
               </Box>
               
-              {/* Data Grid */}
-              <Box sx={{ mt: 3 }}>
+              {/* Data Grid - Centered */}
+              <Box sx={{ mt: 2.5 }}>
                 <AGDataGrid
                   data={excelData}
                   onSelectionChange={setSelectedCells}
@@ -344,37 +338,39 @@ function App() {
             </Paper>
           )}
 
-          {/* Empty State */}
+          {/* Empty State - Compact */}
           {!excelData && (
             <Paper 
               elevation={4} 
               sx={{ 
-                p: { xs: 4, md: 8 }, 
+                p: { xs: 3, md: 6 }, 
                 textAlign: 'center',
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)'
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                mx: 'auto',
+                maxWidth: 800
               }}
             >
-              <AnalyticsIcon sx={{ fontSize: { xs: '4rem', md: '6rem' }, color: 'primary.main', mb: 3 }} />
+              <AnalyticsIcon sx={{ fontSize: { xs: '3rem', md: '4rem' }, color: 'primary.main', mb: 2.5 }} />
               <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
                 Ready to Process Your Excel Data
               </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 700, mx: 'auto', mb: 3, fontSize: '1.1rem' }}>
+              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', mb: 2.5, fontSize: '1rem' }}>
                 Upload an Excel file to get started with data manipulation, analysis, and transformation. 
                 Our tool supports multiple sheets, pivot tables, and advanced calculations.
               </Typography>
               
-              {/* Feature Highlights */}
+              {/* Feature Highlights - Compact */}
               <Box sx={{ 
                 display: 'grid', 
                 gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, 
-                gap: 3, 
-                mt: 4,
+                gap: 2, 
+                mt: 3,
                 textAlign: 'left'
               }}>
-                <Box sx={{ p: 2, background: 'rgba(25, 118, 210, 0.05)', borderRadius: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 1 }}>
+                <Box sx={{ p: 1.5, background: 'rgba(25, 118, 210, 0.05)', borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 0.5 }}>
                     📝 Text Operations
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -382,8 +378,8 @@ function App() {
                   </Typography>
                 </Box>
                 
-                <Box sx={{ p: 2, background: 'rgba(156, 39, 176, 0.05)', borderRadius: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main', mb: 1 }}>
+                <Box sx={{ p: 1.5, background: 'rgba(156, 39, 176, 0.05)', borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main', mb: 0.5 }}>
                     🧮 Mathematical Functions
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -391,8 +387,8 @@ function App() {
                   </Typography>
                 </Box>
                 
-                <Box sx={{ p: 2, background: 'rgba(76, 175, 80, 0.05)', borderRadius: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main', mb: 1 }}>
+                <Box sx={{ p: 1.5, background: 'rgba(76, 175, 80, 0.05)', borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main', mb: 0.5 }}>
                     📊 Advanced Analysis
                   </Typography>
                   <Typography variant="body2" color="text.secondary">

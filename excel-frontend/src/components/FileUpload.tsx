@@ -141,11 +141,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Upload Area */}
+      {/* Upload Area - Compact */}
       <Paper
-        elevation={dragActive ? 8 : 4}
+        elevation={dragActive ? 6 : 3}
         sx={{
-          p: { xs: 3, md: 4 },
+          p: { xs: 2, md: 3 },
           textAlign: 'center',
           cursor: 'pointer',
           border: `2px dashed ${dragActive ? theme.palette.primary.main : theme.palette.divider}`,
@@ -156,11 +156,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
           '&:hover': {
             borderColor: theme.palette.primary.main,
             backgroundColor: theme.palette.primary.light + '04',
-            transform: 'translateY(-2px)',
-              // Change all upload text to white on hover
-              '& .upload-main-text, & .upload-desc-text': {
-                color: '#fff',
-              },
+            transform: 'translateY(-1px)',
           },
           position: 'relative',
           overflow: 'hidden',
@@ -185,25 +181,24 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
           }}
         />
 
-        {/* Upload Content */}
+        {/* Upload Content - Compact */}
         <Box sx={{ position: 'relative', zIndex: 1 }}>
           <Grow in={!uploading} timeout={500}>
             <Box>
               <CloudUploadIcon 
                 sx={{ 
-                  fontSize: { xs: '3rem', md: '4rem' }, 
+                  fontSize: { xs: '2.5rem', md: '3rem' }, 
                   color: dragActive ? 'primary.main' : 'primary.light',
-                  mb: 2,
+                  mb: 1.5,
                   transition: 'all 0.3s ease-in-out',
                   transform: dragActive ? 'scale(1.1)' : 'scale(1)',
                 }} 
               />
               
               <Typography 
-                variant={isMobile ? 'h5' : 'h4'} 
+                variant={isMobile ? 'h6' : 'h5'} 
                 component="h2" 
                 gutterBottom 
-                className="upload-main-text"
                 sx={{ 
                   fontWeight: 600,
                   color: 'text.primary',
@@ -214,12 +209,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
               </Typography>
               
               <Typography 
-                variant="body1" 
+                variant="body2" 
                 color="text.secondary" 
-                className="upload-desc-text"
                 sx={{ 
-                  mb: 3,
-                  maxWidth: 500,
+                  mb: 2,
+                  maxWidth: 400,
                   mx: 'auto'
                 }}
               >
@@ -229,7 +223,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
                 }
               </Typography>
 
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                 <Chip 
                   label=".xlsx" 
                   variant="outlined" 
@@ -238,10 +232,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
                   sx={{
                     transition: 'color 0.3s, background 0.3s, border 0.3s',
                     color: 'black',
-                    borderWidth: 2,
+                    borderWidth: 1.5,
                     borderColor: 'primary.main',
                     fontWeight: 600,
-                    backgroundColor: 'rgba(33, 150, 243, 0.08)', // more visible blue
+                    backgroundColor: 'rgba(33, 150, 243, 0.08)',
+                    fontSize: '0.75rem',
                     '&:hover': {
                       color: '#fff',
                       backgroundColor: 'primary.main',
@@ -257,10 +252,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
                   sx={{
                     transition: 'color 0.3s, background 0.3s, border 0.3s',
                     color: 'black',
-                    borderWidth: 2,
+                    borderWidth: 1.5,
                     borderColor: 'primary.main',
                     fontWeight: 600,
                     backgroundColor: 'rgba(33, 150, 243, 0.08)',
+                    fontSize: '0.75rem',
                     '&:hover': {
                       color: '#fff',
                       backgroundColor: 'primary.main',
@@ -272,11 +268,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
             </Box>
           </Grow>
 
-          {/* Uploading State */}
+          {/* Uploading State - Compact */}
           <Fade in={uploading} timeout={300}>
             <Box sx={{ display: uploading ? 'flex' : 'none', flexDirection: 'column', alignItems: 'center' }}>
-              <CircularProgress size={60} sx={{ mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+              <CircularProgress size={50} sx={{ mb: 1.5 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                 Uploading...
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -296,23 +292,23 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
         style={{ display: 'none' }}
       />
 
-      {/* Selected File Info */}
+      {/* Selected File Info - Compact */}
       {selectedFile && (
         <Grow in={!!selectedFile} timeout={500}>
           <Paper 
-            elevation={2} 
+            elevation={1} 
             sx={{ 
-              mt: 2, 
-              p: 2,
+              mt: 1.5, 
+              p: 1.5,
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.5,
               background: theme.palette.background.paper,
             }}
           >
             {getFileIcon(selectedFile.name)}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
                 {selectedFile.name}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -323,15 +319,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
         </Grow>
       )}
 
-      {/* Status Messages */}
+      {/* Status Messages - Compact */}
       {uploadStatus !== 'idle' && (
         <Fade in={true} timeout={300}>
-          <Box sx={{ mt: 2 }}>
+          <Box sx={{ mt: 1.5 }}>
             <Alert 
               severity={uploadStatus === 'success' ? 'success' : 'error'}
               icon={uploadStatus === 'success' ? <CheckIcon /> : <ErrorIcon />}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: 1.5,
                 '& .MuiAlert-message': {
                   fontWeight: 500
                 }
@@ -343,9 +339,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
         </Fade>
       )}
 
-      {/* Help Text */}
-      <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary" sx={{ opacity: 1, color: 'white' }}>
+      {/* Help Text - Compact */}
+      <Box sx={{ mt: 2, textAlign: 'center' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.8 }}>
           Supported formats: .xlsx, .xls • Maximum file size: 50MB
         </Typography>
       </Box>
