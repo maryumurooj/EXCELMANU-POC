@@ -2,6 +2,9 @@
 using ExcelDataManipulator.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using ParquetSharp;
+using System.Text.RegularExpressions;
+
 
 namespace ExcelDataManipulator.API.Controllers
 {
@@ -149,12 +152,7 @@ namespace ExcelDataManipulator.API.Controllers
                 // ✅ ADD THE ACTUAL OPERATION LOGIC HERE!
                 switch (request.Operation.ToLower())
                 {
-                    case "concatenate":
-                        var delimiter = request.Parameters?.GetValueOrDefault("delimiter")?.ToString() ?? "";
-                        result = _operationsService.ConcatenateColumns(currentData, request.SelectedColumns!, delimiter);
-                        Console.WriteLine($"🔍 AFTER CONCAT: {result.Data.Length} rows, {result.ColumnCount} columns");
-                        break;
-
+                    
                     case "trim":
                         // Default: trim single column
                         result = _operationsService.TrimColumn(currentData, request.SelectedColumns![0]);
@@ -187,9 +185,42 @@ namespace ExcelDataManipulator.API.Controllers
                         result = _operationsService.SortByColumn(currentData, request.SelectedColumns![0], ascending);
                         break;
 
-                    case "sum":
-                        result = _operationsService.SumColumns(currentData, request.SelectedColumns!);
+                    case "concatenate":
+                        var delimitersJson = request.Parameters?.GetValueOrDefault("delimiters")?.ToString();
+                        string[] delimitersArray = null;
+
+                        if (!string.IsNullOrEmpty(delimitersJson))
+                        {
+                            try
+                            {
+                                delimitersArray = JsonSerializer.Deserialize<string[]>(delimitersJson);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"⚠️ Failed to parse delimiters: {ex.Message}");
+                                delimitersArray = null;
+                            }
+                        }
+
+                        var concatColumnName = ParseJsonString(request.Parameters?.GetValueOrDefault("newColumnName"), "Concatenated");
+                        result = _operationsService.ConcatenateColumns(currentData, request.SelectedColumns!, delimitersArray, concatColumnName);
                         break;
+
+                    case "sum":
+                        var sumColumnName = ParseJsonString(request.Parameters?.GetValueOrDefault("newColumnName"), "Sum");
+                        result = _operationsService.SumColumns(currentData, request.SelectedColumns!, sumColumnName);
+                        break;
+
+                    case "multiply":
+                        var multiplyColumnName = ParseJsonString(request.Parameters?.GetValueOrDefault("newColumnName"), "Product");
+                        result = _operationsService.MultiplyColumns(currentData, request.SelectedColumns!, multiplyColumnName);
+                        break;
+
+                    case "median":
+                        var medianColumnName = ParseJsonString(request.Parameters?.GetValueOrDefault("newColumnName"), "Median");
+                        result = _operationsService.MedianColumns(currentData, request.SelectedColumns!, medianColumnName);
+                        break;
+
 
                     case "pivot":
                         var rowGroupCol = ParseJsonInt(request.Parameters?.GetValueOrDefault("rowGroupColumn"), 0);
@@ -223,15 +254,6 @@ namespace ExcelDataManipulator.API.Controllers
                     case "count":
                         result = _operationsService.CountColumns(currentData, request.SelectedColumns!);
                         break;
-
-                    case "multiply":
-                        result = _operationsService.MultiplyColumns(currentData, request.SelectedColumns!);
-                        break;
-
-                    case "median":
-                        result = _operationsService.MedianColumns(currentData, request.SelectedColumns!);
-                        break;
-
 
                     default:
                         throw new ArgumentException($"Unknown operation: {request.Operation}");
@@ -272,5 +294,109 @@ namespace ExcelDataManipulator.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        
+
+[HttpGet("export/json")]
+    public async Task<IActionResult> ExportJson()
+    {
+        try
+        {
+            var currentData = _excelService.GetCurrentData();
+
+            // Create a structured JSON representation
+            var jsonData = new
+            {
+                fileName = "exported_data",
+                exportedAt = DateTime.Now,
+                sheets = new[]
+                {
+                new
+                {
+                    name = _excelService.GetActiveSheetName(),
+                    headers = currentData.Headers,
+                    data = currentData.Data,
+                    rowCount = currentData.RowCount,
+                    columnCount = currentData.ColumnCount
+                }
+            }
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            string jsonString = JsonSerializer.Serialize(jsonData, options);
+            byte[] jsonBytes = System.Text.Encoding.UTF8.GetBytes(jsonString);
+
+            return File(jsonBytes, "application/json", "exported_data.json");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("export/parquet")]
+    public async Task<IActionResult> ExportParquet()
+    {
+        try
+        {
+            var currentData = _excelService.GetCurrentData();
+
+            using var memoryStream = new MemoryStream();
+            var columns = CreateParquetColumns(currentData);
+
+            using (var parquetWriter = new ParquetFileWriter(memoryStream, columns))
+            {
+                using var rowGroupWriter = parquetWriter.AppendRowGroup();
+
+                // Write each column
+                for (int columnIndex = 0; columnIndex < currentData.ColumnCount; columnIndex++)
+                {
+                    var columnData = new string[currentData.RowCount];
+                    for (int rowIndex = 0; rowIndex < currentData.RowCount; rowIndex++)
+                    {
+                        columnData[rowIndex] = currentData.Data[rowIndex][columnIndex] ?? "";
+                    }
+
+                    using var columnWriter = rowGroupWriter.NextColumn().LogicalWriter<string>();
+                    columnWriter.WriteBatch(columnData);
+                }
+
+                parquetWriter.Close();
+            }
+
+            return File(memoryStream.ToArray(), "application/octet-stream", "exported_data.parquet");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    private Column[] CreateParquetColumns(ExcelDataModel data)
+    {
+        var columns = new Column[data.ColumnCount];
+
+        for (int i = 0; i < data.ColumnCount; i++)
+        {
+            // Clean header names for Parquet compatibility (remove spaces, special chars)
+            var headerName = Regex.Replace(data.Headers[i], @"[^a-zA-Z0-9_]", "_");
+
+            // Ensure header name doesn't start with number
+            if (char.IsDigit(headerName[0]))
+            {
+                headerName = "Col_" + headerName;
+            }
+
+            columns[i] = new Column<string>(headerName);
+        }
+
+        return columns;
+    }
+
+
     }
 }

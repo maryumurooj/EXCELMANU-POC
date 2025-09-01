@@ -66,6 +66,82 @@ const Toolbar: React.FC<ToolbarProps> = ({
     aggregation: "sum",
   });
 
+  const [newColumnName, setNewColumnName] = useState("");
+  const [delimiters, setDelimiters] = useState<string[]>([]);
+
+// Add new state for export menu
+const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+
+// Export menu handlers
+const handleExportMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  setExportMenuAnchor(event.currentTarget);
+};
+
+const handleExportMenuClose = () => {
+  setExportMenuAnchor(null);
+};
+
+// Export handlers
+const handleExportExcel = async () => {
+  try {
+    const response = await axios.get(
+      "http://localhost:5018/api/excel/export",
+      { responseType: "blob" }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "exported_data.xlsx");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    handleExportMenuClose();
+  } catch (error) {
+    console.error("Excel export failed:", error);
+  }
+};
+
+const handleExportJson = async () => {
+  try {
+    const response = await axios.get(
+      "http://localhost:5018/api/excel/export/json",
+      { responseType: "blob" }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "exported_data.json");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    handleExportMenuClose();
+  } catch (error) {
+    console.error("JSON export failed:", error);
+  }
+};
+
+const handleExportParquet = async () => {
+  try {
+    const response = await axios.get(
+      "http://localhost:5018/api/excel/export/parquet",
+      { responseType: "blob" }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "exported_data.parquet");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    handleExportMenuClose();
+  } catch (error) {
+    console.error("Parquet export failed:", error);
+  }
+};
+
   // Menu states
   const [transformMenuAnchor, setTransformMenuAnchor] = useState<null | HTMLElement>(null);
   const [calculateMenuAnchor, setCalculateMenuAnchor] = useState<null | HTMLElement>(null);
@@ -149,6 +225,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
       alert("Please select at least 2 columns to concatenate");
       return;
     }
+    
+    // Initialize delimiters array with empty strings (one less than columns selected)
+    const delimiterCount = selectedCells.columns.length - 1;
+    setDelimiters(new Array(delimiterCount).fill(""));
+    
     setCurrentOperation("concatenate");
     setDialogOpen(true);
     handleTransformMenuClose();
@@ -199,58 +280,134 @@ const Toolbar: React.FC<ToolbarProps> = ({
     handleCleanMenuClose();
   };
 
-  // Calculate operations
-  const handleSum = () => {
-    executeOperation("sum");
-    handleCalculateMenuClose();
-  };
+// Calculate operations - update to open dialogs for custom naming
+const handleSum = () => {
+  if (!canCalculate) {
+    alert("Please select at least 1 column to sum");
+    return;
+  }
+  setCurrentOperation("sum");
+  setDialogOpen(true);
+  handleCalculateMenuClose();
+};
 
-  const handleAverage = () => {
-    executeOperation("average");
-    handleCalculateMenuClose();
-  };
+const handleAverage = () => {
+  if (!canCalculate) {
+    alert("Please select at least 1 column to calculate average");
+    return;
+  }
+  setCurrentOperation("average");
+  setDialogOpen(true);
+  handleCalculateMenuClose();
+};
 
-  const handleMin = () => {
-    executeOperation("min");
-    handleCalculateMenuClose();
-  };
+const handleMin = () => {
+  if (!canCalculate) {
+    alert("Please select at least 1 column to find minimum");
+    return;
+  }
+  setCurrentOperation("min");
+  setDialogOpen(true);
+  handleCalculateMenuClose();
+};
 
-  const handleMax = () => {
-    executeOperation("max");
-    handleCalculateMenuClose();
-  };
+const handleMax = () => {
+  if (!canCalculate) {
+    alert("Please select at least 1 column to find maximum");
+    return;
+  }
+  setCurrentOperation("max");
+  setDialogOpen(true);
+  handleCalculateMenuClose();
+};
 
-  const handleCount = () => {
-    executeOperation("count");
-    handleCalculateMenuClose();
-  };
+const handleCount = () => {
+  if (!canCalculate) {
+    alert("Please select at least 1 column to count values");
+    return;
+  }
+  setCurrentOperation("count");
+  setDialogOpen(true);
+  handleCalculateMenuClose();
+};
 
-  const handleMedian = () => {
-    executeOperation("median");
-    handleCalculateMenuClose();
-  };
+const handleMedian = () => {
+  if (!canCalculate) {
+    alert("Please select at least 1 column to calculate median");
+    return;
+  }
+  setCurrentOperation("median");
+  setDialogOpen(true);
+  handleCalculateMenuClose();
+};
 
-  const handleMultiply = () => {
-    if (selectedCells.columns.length < 2) {
-      alert("Please select at least 2 columns to multiply");
-      return;
-    }
-    executeOperation("multiply");
-    handleCalculateMenuClose();
-  };
+const handleMultiply = () => {
+  if (selectedCells.columns.length < 2) {
+    alert("Please select at least 2 columns to multiply");
+    return;
+  }
+  setCurrentOperation("multiply");
+  setDialogOpen(true);
+  handleCalculateMenuClose();
+};
 
-  const handleDialogConfirm = () => {
-    switch (currentOperation) {
-      case "concatenate":
-        executeOperation("concatenate", { delimiter });
-        break;
-      case "changecase":
-        executeOperation("changecase", { caseType });
-        break;
-    }
-    setDialogOpen(false);
-    setDelimiter("");
-  };
+
+const handleDialogConfirm = () => {
+  const customName = newColumnName.trim();
+  
+  switch (currentOperation) {
+    case "concatenate":
+      executeOperation("concatenate", { 
+        delimiters: delimiters, // ✅ Pass delimiters array
+        newColumnName: customName || "Concatenated"
+      });
+      break;
+    case "changecase":
+      executeOperation("changecase", { caseType });
+      break;
+    case "sum":
+      executeOperation("sum", {
+        newColumnName: customName || "Sum"
+      });
+      break;
+    case "average":
+      executeOperation("average", {
+        newColumnName: customName || "Average"
+      });
+      break;
+    case "min":
+      executeOperation("min", {
+        newColumnName: customName || "Minimum"
+      });
+      break;
+    case "max":
+      executeOperation("max", {
+        newColumnName: customName || "Maximum"
+      });
+      break;
+    case "count":
+      executeOperation("count", {
+        newColumnName: customName || "Count"
+      });
+      break;
+    case "median":
+      executeOperation("median", {
+        newColumnName: customName || "Median"
+      });
+      break;
+    case "multiply":
+      executeOperation("multiply", {
+        newColumnName: customName || "Product"
+      });
+      break;
+  }
+  
+  setDialogOpen(false);
+  setDelimiter("");
+  setNewColumnName(""); // Reset custom name
+  setDelimiters([]); // ✅ Reset delimiters array
+};
+
 
   const handlePivotConfirm = () => {
     executeOperation("pivot", {
@@ -420,71 +577,162 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </Menu>
 
         {/* Export */}
-        <Button
-          variant="outlined"
-          startIcon={<GetApp />}
-          onClick={handleExport}
-          sx={{ minWidth: 120, ml: 'auto' }}
-        >
-          Export
-        </Button>
+{/* Export Dropdown */}
+<Button
+  variant="outlined"
+  startIcon={<GetApp />}
+  endIcon={<ArrowDropDown />}
+  onClick={handleExportMenuOpen}
+  sx={{ minWidth: 120, ml: 'auto' }}
+>
+  Export
+</Button>
+<Menu
+  anchorEl={exportMenuAnchor}
+  open={Boolean(exportMenuAnchor)}
+  onClose={handleExportMenuClose}
+>
+  <MenuItem onClick={handleExportExcel}>
+    <ListItemIcon><GetApp /></ListItemIcon>
+    <ListItemText>Export as Excel (.xlsx)</ListItemText>
+  </MenuItem>
+  <MenuItem onClick={handleExportJson}>
+    <ListItemIcon><GetApp /></ListItemIcon>
+    <ListItemText>Export as JSON (.json)</ListItemText>
+  </MenuItem>
+  <MenuItem onClick={handleExportParquet}>
+    <ListItemIcon><GetApp /></ListItemIcon>
+    <ListItemText>Export as Parquet (.parquet)</ListItemText>
+  </MenuItem>
+</Menu>
+
       </Stack>
 
       {/* Dialogs remain the same... */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <DialogTitle>
-          {currentOperation === "concatenate"
-            ? "Concatenate Columns"
-            : "Change Case"}
-        </DialogTitle>
-        <DialogContent>
-          {currentOperation === "concatenate" && (
-            <>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Concatenating columns:{" "}
-                {selectedCells.columns
-                  .map((colIndex) => currentData.headers[colIndex])
-                  .join(", ")}
-              </Alert>
-              <TextField
-                autoFocus
-                margin="dense"
-                label="Delimiter (leave empty for no delimiter)"
-                fullWidth
-                variant="outlined"
-                value={delimiter}
-                onChange={(e) => setDelimiter(e.target.value)}
-                placeholder="e.g., -, |, space, etc."
-              />
-            </>
-          )}
-          {currentOperation === "changecase" && (
-            <>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Changing case for column:{" "}
-                {currentData.headers[selectedCells.columns[0]] || 'Unknown'}
-              </Alert>
-              <FormControl fullWidth margin="dense">
-                <InputLabel>Case Type</InputLabel>
-                <Select
-                  value={caseType}
-                  onChange={(e) => setCaseType(e.target.value)}
-                >
-                  <MenuItem value="upper">UPPERCASE</MenuItem>
-                  <MenuItem value="lower">lowercase</MenuItem>
-                  <MenuItem value="title">Title Case</MenuItem>
-                </Select>
-              </FormControl>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDialogConfirm} variant="contained">
-            Apply
-          </Button>
-        </DialogActions>
-      </Dialog>
+  <DialogTitle>
+    {currentOperation === "concatenate" && "Concatenate Columns"}
+    {currentOperation === "changecase" && "Change Case"}
+    {currentOperation === "sum" && "Sum Columns"}
+    {currentOperation === "average" && "Average Columns"}
+    {currentOperation === "min" && "Find Minimum"}
+    {currentOperation === "max" && "Find Maximum"}
+    {currentOperation === "count" && "Count Values"}
+    {currentOperation === "median" && "Calculate Median"}
+    {currentOperation === "multiply" && "Multiply Columns"}
+  </DialogTitle>
+  <DialogContent>
+    {/* ✅ Add custom column name input for operations that create new columns */}
+    {["concatenate", "sum", "average", "min", "max", "count", "median", "multiply"].includes(currentOperation) && (
+      <TextField
+        margin="dense"
+        label="New Column Name"
+        fullWidth
+        variant="outlined"
+        value={newColumnName}
+        onChange={(e) => setNewColumnName(e.target.value)}
+        placeholder={`Default: ${
+          currentOperation === "concatenate" ? "Concatenated" :
+          currentOperation === "sum" ? "Sum" :
+          currentOperation === "average" ? "Average" :
+          currentOperation === "min" ? "Minimum" :
+          currentOperation === "max" ? "Maximum" :
+          currentOperation === "count" ? "Count" :
+          currentOperation === "median" ? "Median" :
+          currentOperation === "multiply" ? "Product" : "Result"
+        }`}
+        sx={{ mb: 2 }}
+      />
+    )}
+
+{currentOperation === "concatenate" && (
+  <>
+    {/* ✅ Custom column name input */}
+   
+
+    <Alert severity="info" sx={{ mb: 2 }}>
+      Concatenating columns:{" "}
+      {selectedCells.columns
+        .map((colIndex) => currentData.headers[colIndex])
+        .join(", ")}
+    </Alert>
+
+    {/* ✅ Multiple delimiter inputs - FIXED */}
+    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+      Delimiters between columns:
+    </Typography>
+    
+    {selectedCells.columns.length > 1 && 
+      selectedCells.columns.slice(0, -1).map((colIndex, index) => (
+        <TextField
+          key={`delimiter-${index}`}
+          margin="dense"
+          label={`Between "${currentData.headers[colIndex]}" and "${currentData.headers[selectedCells.columns[index + 1]]}"`}
+          fullWidth
+          variant="outlined"
+          value={delimiters[index] || ""}
+          onChange={(e) => {
+            const newDelimiters = [...delimiters];
+            newDelimiters[index] = e.target.value;
+            setDelimiters(newDelimiters);
+          }}
+          placeholder="Enter delimiter (e.g., -, /, |, space, etc.)"
+          sx={{ mb: 1 }}
+        />
+      ))
+    }
+    
+    {/* ✅ Preview of result */}
+    <Alert severity="success" sx={{ mt: 2 }}>
+      <strong>Preview:</strong> {selectedCells.columns
+        .map((colIndex) => currentData.headers[colIndex])
+        .reduce((acc, header, index) => {
+          if (index === 0) return header;
+          const delimiter = delimiters[index - 1] || "";
+          return acc + delimiter + header;
+        }, "")}
+    </Alert>
+  </>
+)}
+
+
+    {currentOperation === "changecase" && (
+      <>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Changing case for column:{" "}
+          {currentData.headers[selectedCells.columns[0]] || 'Unknown'}
+        </Alert>
+        <FormControl fullWidth margin="dense">
+          <InputLabel>Case Type</InputLabel>
+          <Select
+            value={caseType}
+            onChange={(e) => setCaseType(e.target.value)}
+          >
+            <MenuItem value="upper">UPPERCASE</MenuItem>
+            <MenuItem value="lower">lowercase</MenuItem>
+            <MenuItem value="title">Title Case</MenuItem>
+          </Select>
+        </FormControl>
+      </>
+    )}
+
+    {["sum", "average", "min", "max", "count", "median", "multiply"].includes(currentOperation) && (
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Calculating {currentOperation} for columns:{" "}
+        {selectedCells.columns
+          .map((colIndex) => currentData.headers[colIndex])
+          .join(", ")}
+      </Alert>
+    )}
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+    <Button onClick={handleDialogConfirm} variant="contained">
+      Apply
+    </Button>
+  </DialogActions>
+</Dialog>
+
 
       {/* Pivot Dialog remains the same... */}
       <Dialog
