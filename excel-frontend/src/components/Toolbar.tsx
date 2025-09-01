@@ -649,6 +649,7 @@ const handleDialogConfirm = () => {
   <>
     {/* ✅ Custom column name input */}
    
+   
 
     <Alert severity="info" sx={{ mb: 2 }}>
       Concatenating columns:{" "}
