@@ -61,7 +61,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
     
     // Always use viewport-based height to ensure full space utilization
     // This ensures the grid takes up the full available space regardless of data size
-    return 'calc(100vh - 400px)'; // Adjusted to account for all UI elements
+    return 'calc(100vh - 220px)'; // Expanded so more rows are visible
   }, [data.data.length]);
 
   const getCurrentDataWithEdits = useCallback(() => {
@@ -143,10 +143,15 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
       checkboxSelection: index === 0,
       headerCheckboxSelection: index === 0,
       headerClass: selectedColumns.includes(`col_${index}`) ? 'selected-column-header' : '',
+      // Highlight edited cells
+      cellClass: (params: any) => {
+        const cellKey = `${params.data?.rowIndex}_${params.colDef.field}`;
+        return cellEdits.has(cellKey) ? 'edited-cell' : '';
+      },
       cellStyle: {
-        padding: '16px 20px',
-        fontSize: '16px',
-        lineHeight: '1.4',
+        padding: '12px 16px',
+        fontSize: '14px',
+        lineHeight: '1.35',
         whiteSpace: 'normal', // Allow text wrapping
         wordBreak: 'break-word', // Break long words
         verticalAlign: 'middle',
@@ -177,7 +182,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         });
       }
     }));
-  }, [data.headers, selectedColumns, onSelectionChange]);
+  }, [data.headers, selectedColumns, onSelectionChange, cellEdits]);
 
   const onGridReady = useCallback((params: GridReadyEvent) => {
     setGridApi(params.api);
@@ -368,11 +373,11 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
             editable: true,
             minWidth: 120,
             maxWidth: 400,
-            autoHeight: true,
+            autoHeight: false,
             cellStyle: {
-              padding: '16px 20px',
-              fontSize: '16px',
-              lineHeight: '1.4',
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '1.35',
               whiteSpace: 'normal',
               wordBreak: 'break-word',
               verticalAlign: 'middle',
@@ -392,7 +397,8 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           suppressColumnVirtualisation={false}
           suppressRowVirtualisation={false}
           domLayout="normal"
-          headerHeight={100}
+          headerHeight={80}
+          rowHeight={40}
         />
       </div>
 
@@ -419,51 +425,71 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
 
       {/* Custom Styles */}
       <style>{`
+        /* Header appearance */
+        .ag-theme-alpine .ag-header,
+        .ag-theme-alpine .ag-header-row,
         .ag-theme-alpine .ag-header-cell {
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          font-size: 14px;
-          padding: 16px 20px;
-          border-right: 1px solid ${theme.palette.divider};
-          border-bottom: 1px solid ${theme.palette.divider};
+          background-color: ${theme.palette.primary.dark};
+          color: #ffffff;
+        }
+
+        .ag-theme-alpine .ag-header-cell {
+          font-weight: 600;
+          text-transform: none;
+          letter-spacing: 0.2px;
+          font-size: 13.5px;
+          padding: 12px 16px;
+          border-right: 1px solid ${theme.palette.primary.dark};
+          border-bottom: 1px solid ${theme.palette.primary.dark};
         }
         
         .ag-theme-alpine .ag-header-cell-label {
           white-space: normal !important;
-          line-height: 1.2;
+          line-height: 1.25;
+        }
+        .ag-theme-alpine .ag-header-cell-text {
+          white-space: normal !important;
         }
 
         .ag-theme-alpine .ag-header-cell-resize::after {
-          background-color: ${theme.palette.primary.main};
+          background-color: #ffffff;
+        }
+        
+        /* Sticky header relative to viewport */
+        .ag-data-grid-container .ag-header {
+          position: sticky;
+          top: 0; /* adjust if you have a fixed AppBar */
+          z-index: 10;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.12);
         }
         
         .ag-theme-alpine .ag-cell {
-          padding: 16px 20px !important;
+          padding: 12px 16px !important;
           border-right: 1px solid ${theme.palette.divider} !important;
           border-bottom: 1px solid ${theme.palette.divider} !important;
-          font-size: 16px !important;
-          line-height: 1.4 !important;
+          font-size: 14px !important;
+          line-height: 1.35 !important;
           white-space: normal !important;
           word-break: break-word !important;
           vertical-align: middle !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
+          background-color: ${theme.palette.background.paper} !important; /* uniform background */
         }
+        /* No zebra striping: use clean canvas; emphasize hover/selected only */
         
-        .ag-theme-alpine .ag-cell:focus {
-          outline: 2px solid ${theme.palette.primary.main} !important;
-          outline-offset: -2px !important;
+        /* Edited cells highlight */
+        .ag-theme-alpine .ag-cell.edited-cell {
+          background-color: ${theme.palette.warning.light + '40'} !important;
         }
         
         .ag-theme-alpine .ag-row-selected {
-          background-color: ${theme.palette.primary.light + '15'} !important;
+          background-color: ${theme.palette.primary.light + '18'} !important;
         }
-        
-        .ag-theme-alpine .ag-row-hover {
-          background-color: ${theme.palette.primary.light + '08'} !important;
+        .ag-theme-alpine .ag-row-hover .ag-cell {
+          background-color: ${theme.palette.action.hover} !important;
         }
-        
+
         .selected-column-header {
           background-color: ${theme.palette.primary.main} !important;
           color: white !important;

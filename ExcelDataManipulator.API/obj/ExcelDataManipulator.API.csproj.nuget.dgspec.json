@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\22691A05C9\\EXCELMANU-POC\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj": {}
+    "D:\\22691A05C9\\EXCELMANU-POC-ui-jabir\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj": {}
   },
   "projects": {
-    "D:\\22691A05C9\\EXCELMANU-POC\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj": {
+    "D:\\22691A05C9\\EXCELMANU-POC-ui-jabir\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\22691A05C9\\EXCELMANU-POC\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj",
+        "projectUniqueName": "D:\\22691A05C9\\EXCELMANU-POC-ui-jabir\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj",
         "projectName": "ExcelDataManipulator.API",
-        "projectPath": "D:\\22691A05C9\\EXCELMANU-POC\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj",
+        "projectPath": "D:\\22691A05C9\\EXCELMANU-POC-ui-jabir\\ExcelDataManipulator.API\\ExcelDataManipulator.API.csproj",
         "packagesPath": "C:\\Users\\theja\\.nuget\\packages\\",
-        "outputPath": "D:\\22691A05C9\\EXCELMANU-POC\\ExcelDataManipulator.API\\obj\\",
+        "outputPath": "D:\\22691A05C9\\EXCELMANU-POC-ui-jabir\\ExcelDataManipulator.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "D:\\Visual Studio Setup\\Visual Studio Shared Components\\NuGetPackages"
