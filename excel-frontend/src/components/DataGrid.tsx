@@ -113,7 +113,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onSelectionChange }) => {
         density="comfortable" // Use comfortable density for better spacing
         disableRowSelectionOnClick={false}
         getRowHeight={() => 60} // Increased row height for better readability
-        sx={{
+        sx={(theme) => ({
           width: '100%',
           minWidth: '100%',
           '& .MuiDataGrid-root': {
@@ -128,6 +128,17 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onSelectionChange }) => {
             width: '100% !important',
             minWidth: '100% !important',
           },
+          '& .MuiDataGrid-columnHeaders': {
+            position: 'sticky',
+            top: 0,
+            zIndex: 2,
+            backgroundColor: theme.palette.primary.dark,
+            color: theme.palette.getContrastText(theme.palette.primary.dark),
+            boxShadow: '0 2px 4px rgba(0,0,0,0.12)'
+          },
+          '& .MuiDataGrid-columnHeader, & .MuiDataGrid-columnHeaderTitle, & .MuiDataGrid-columnHeaderDraggableContainer': {
+            color: theme.palette.getContrastText(theme.palette.primary.dark) + ' !important',
+          },
           '& .MuiDataGrid-columnHeader': {
             flex: 1,
             minWidth: 0,
@@ -137,12 +148,13 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onSelectionChange }) => {
             flex: 1,
             minWidth: 0,
             width: 'auto !important',
+            backgroundColor: theme.palette.grey[100], // Stronger light background for visibility
           },
           '& .MuiDataGrid-row': {
             width: '100% !important',
             minWidth: '100% !important',
           },
-        }}
+        })}
       />
     </div>
   );

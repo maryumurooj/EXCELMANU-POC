@@ -3,7 +3,7 @@
   width: 100% !important;
   min-width: 100% !important;
   height: 600px;
-  overflow: hidden;
+  overflow: auto; /* enable scrolling so sticky header works */
   display: block !important;
 }
 
@@ -62,7 +62,7 @@
   width: 100% !important;
   min-width: 100% !important;
   max-width: none !important;
-  background-color: #f8f9fa !important;
+  background-color: transparent !important; /* allow theme-based color via sx */
   border-bottom: 2px solid #e0e0e0 !important;
   display: block !important;
 }
@@ -89,7 +89,6 @@
 }
 
 .data-grid-container .MuiDataGrid-columnHeader:hover {
-  background-color: #e9ecef !important;
   transition: background-color 0.2s ease;
 }
 
@@ -108,6 +107,7 @@
   align-items: center !important;
   flex: 1 !important;
   box-sizing: border-box !important;
+  background-color: #999999 !important; /* stronger light background for visibility */
 }
 
 .data-grid-container .MuiDataGrid-cell:last-child {
@@ -151,8 +151,12 @@
   display: flex !important;
 }
 
-.data-grid-container .MuiDataGrid-row:nth-of-type(even) {
-  background-color: #fafbfc !important;
+.data-grid-container .MuiDataGrid-row:nth-of-type(odd) .MuiDataGrid-cell {
+  background-color: #fafafa !important; /* zebra: light */
+}
+
+.data-grid-container .MuiDataGrid-row:nth-of-type(even) .MuiDataGrid-cell {
+  background-color: #f0f2f5 !important; /* zebra: slightly darker light */
 }
 
 .data-grid-container .MuiDataGrid-row:hover {
@@ -160,7 +164,17 @@
   transition: background-color 0.2s ease;
 }
 
+/* Ensure hover overrides zebra on cells */
+.data-grid-container .MuiDataGrid-row:hover .MuiDataGrid-cell {
+  background-color: rgba(25, 118, 210, 0.08) !important;
+}
+
 .data-grid-container .MuiDataGrid-row.Mui-selected {
+  background-color: rgba(25, 118, 210, 0.12) !important;
+}
+
+/* Ensure selection overrides zebra on cells */
+.data-grid-container .MuiDataGrid-row.Mui-selected .MuiDataGrid-cell {
   background-color: rgba(25, 118, 210, 0.12) !important;
 }
 

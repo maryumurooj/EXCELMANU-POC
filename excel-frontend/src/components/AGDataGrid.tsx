@@ -429,8 +429,8 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         .ag-theme-alpine .ag-header,
         .ag-theme-alpine .ag-header-row,
         .ag-theme-alpine .ag-header-cell {
-          background-color: ${theme.palette.primary.dark};
-          color: #ffffff;
+          background-color: ${theme.palette.primary.main};
+          color: ${theme.palette.getContrastText(theme.palette.primary.main)};
         }
 
         .ag-theme-alpine .ag-header-cell {
@@ -452,7 +452,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         }
 
         .ag-theme-alpine .ag-header-cell-resize::after {
-          background-color: #ffffff;
+          background-color: ${theme.palette.getContrastText(theme.palette.primary.main)};
         }
         
         /* Sticky header relative to viewport */
@@ -474,16 +474,28 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           vertical-align: middle !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
-          background-color: ${theme.palette.background.paper} !important; /* uniform background */
+          background-color: ${theme.palette.grey[100]} !important; /* stronger light background for visibility */
         }
-        /* No zebra striping: use clean canvas; emphasize hover/selected only */
-        
+        /* Zebra striping for better row contrast */
+        .ag-theme-alpine .ag-row-odd .ag-cell {
+          background-color: ${theme.palette.grey[50]} !important;
+        }
+
+        .ag-theme-alpine .ag-row-even .ag-cell {
+          background-color: ${theme.palette.grey[100]} !important;
+        }
+
         /* Edited cells highlight */
         .ag-theme-alpine .ag-cell.edited-cell {
           background-color: ${theme.palette.warning.light + '40'} !important;
         }
         
         .ag-theme-alpine .ag-row-selected {
+          background-color: ${theme.palette.primary.light + '18'} !important;
+        }
+
+        /* Ensure selection and hover override zebra at cell level */
+        .ag-theme-alpine .ag-row-selected .ag-cell {
           background-color: ${theme.palette.primary.light + '18'} !important;
         }
         .ag-theme-alpine .ag-row-hover .ag-cell {
