@@ -1,13 +1,601 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+  color: #1a202c;
+  line-height: 1.6;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Selection styling */
+::selection {
+  background-color: #1976d2;
+  color: white;
+}
+
+::-moz-selection {
+  background-color: #1976d2;
+  color: white;
+}
+
+/* Focus styles for accessibility */
+*:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Button focus styles */
+button:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Link styles */
+a {
+  color: #1976d2;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #1565c0;
+  text-decoration: underline;
+}
+
+/* Typography enhancements */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+.mb-5 { margin-bottom: 3rem; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+.mt-5 { margin-top: 3rem; }
+
+.p-0 { padding: 0; }
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+.p-5 { padding: 3rem; }
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #000000;
+    --secondary-color: #ffffff;
+    --border-color: #000000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Dark mode support (if needed in the future) */
+@media (prefers-color-scheme: dark) {
+  /* Dark mode styles can be added here */
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #1976d2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Button hover effects */
+.btn-hover {
+  transition: all 0.2s ease;
+}
+
+.btn-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Focus visible for keyboard navigation */
+.focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Disabled state styling */
+.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Success and error states */
+.success {
+  color: #2e7d32;
+  background-color: #e8f5e8;
+  border-color: #4caf50;
+}
+
+.error {
+  color: #d32f2f;
+  background-color: #ffebee;
+  border-color: #f44336;
+}
+
+.warning {
+  color: #ed6c02;
+  background-color: #fff4e5;
+  border-color: #ff9800;
+}
+
+.info {
+  color: #0288d1;
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* Table Styling System - Standardized across the site */
+/* Base table styles */
+.table-base {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: white;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Table size variants */
+.table-sm {
+  font-size: 14px;
+}
+
+.table-md {
+  font-size: 16px;
+}
+
+.table-lg {
+  font-size: 18px;
+}
+
+/* Full-width table for small datasets */
+.table-full {
+  width: 100%;
+  min-width: 100%;
+}
+
+/* Table header styles */
+.table-base thead th {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px 20px;
+  text-align: left;
+  border: none;
+  position: relative;
+  font-size: 0.875rem;
+}
+
+.table-base thead th:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Table body styles */
+.table-base tbody tr {
+  transition: all 0.2s ease-in-out;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.table-base tbody tr:hover {
+  background-color: rgba(25, 118, 210, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table-base tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table-base tbody tr:nth-child(even):hover {
+  background-color: rgba(25, 118, 210, 0.06);
+}
+
+/* Table cell styles with enhanced visibility */
+.table-base tbody td {
+  padding: 16px 20px;
+  border-right: 1px solid #e0e0e0;
+  vertical-align: middle;
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.table-base tbody td:last-child {
+  border-right: none;
+}
+
+/* Cell content styling */
+.table-base tbody td {
+  font-size: inherit;
+  color: #1a202c;
+}
+
+/* Responsive table container */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Table wrapper for consistent spacing */
+.table-wrapper {
+  margin: 1rem 0;
+  padding: 0;
+}
+
+/* AG Grid specific enhancements */
+.ag-grid-enhanced {
+  --ag-header-height: 56px;
+  --ag-row-height: 56px;
+  --ag-header-background-color: #1976d2;
+  --ag-header-foreground-color: white;
+  --ag-header-cell-hover-background-color: #1565c0;
+  --ag-row-hover-color: rgba(25, 118, 210, 0.08);
+  --ag-selected-row-background-color: rgba(25, 118, 210, 0.15);
+  --ag-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ag-font-size: 16px;
+  --ag-border-color: #e0e0e0;
+  --ag-cell-horizontal-border: solid;
+  --ag-cell-horizontal-border-color: #e0e0e0;
+  --ag-cell-vertical-border: solid;
+  --ag-cell-vertical-border-color: #e0e0e0;
+  --ag-cell-padding: 16px 20px;
+}
+
+/* AG Grid cell enhancements */
+.ag-grid-enhanced .ag-cell {
+  padding: 16px 20px !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  border-right: 1px solid #e0e0e0 !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  vertical-align: middle !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* AG Grid header enhancements */
+.ag-grid-enhanced .ag-header-cell {
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  font-size: 0.875rem !important;
+  padding: 16px 20px !important;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  color: white !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* MUI DataGrid enhancements */
+.mui-datagrid-enhanced {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mui-datagrid-enhanced .MuiDataGrid-root {
+  border: none;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.mui-datagrid-enhanced .MuiDataGrid-columnHeaders {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mui-datagrid-enhanced .MuiDataGrid-columnHeader {
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 16px 20px;
+}
+
+.mui-datagrid-enhanced .MuiDataGrid-cell {
+  padding: 16px 20px;
+  font-size: 16px;
+  line-height: 1.5;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
+}
+
+.mui-datagrid-enhanced .MuiDataGrid-row:hover {
+  background-color: rgba(25, 118, 210, 0.04);
+}
+
+/* Responsive breakpoints for tables */
+@media (max-width: 768px) {
+  .table-base thead th,
+  .table-base tbody td {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .ag-grid-enhanced {
+    --ag-header-height: 48px;
+    --ag-row-height: 48px;
+    --ag-font-size: 14px;
+    --ag-cell-padding: 12px 16px;
+  }
+  
+  .ag-grid-enhanced .ag-cell {
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+  }
+  
+  .ag-grid-enhanced .ag-header-cell {
+    padding: 12px 16px !important;
+    font-size: 0.75rem !important;
+  }
+  
+  .mui-datagrid-enhanced .MuiDataGrid-columnHeader,
+  .mui-datagrid-enhanced .MuiDataGrid-cell {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-base thead th,
+  .table-base tbody td {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .ag-grid-enhanced {
+    --ag-header-height: 40px;
+    --ag-row-height: 40px;
+    --ag-font-size: 13px;
+    --ag-cell-padding: 8px 12px;
+  }
+  
+  .ag-grid-enhanced .ag-cell {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  .ag-grid-enhanced .ag-header-cell {
+    padding: 8px 12px !important;
+    font-size: 0.7rem !important;
+  }
+  
+  .mui-datagrid-enhanced .MuiDataGrid-columnHeader,
+  .mui-datagrid-enhanced .MuiDataGrid-cell {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* High contrast mode support for tables */
+@media (prefers-contrast: high) {
+  .table-base {
+    border: 2px solid #000000;
+  }
+  
+  .table-base thead th {
+    background: #000000;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+  }
+  
+  .table-base tbody td {
+    border: 1px solid #000000;
+  }
+  
+  .ag-grid-enhanced {
+    --ag-border-color: #000000;
+    --ag-cell-horizontal-border-color: #000000;
+    --ag-cell-vertical-border-color: #000000;
+  }
+}
+
+/* Reduced motion support for tables */
+@media (prefers-reduced-motion: reduce) {
+  .table-base tbody tr {
+    transition: none;
+    transform: none;
+  }
+  
+  .table-base tbody tr:hover {
+    transform: none;
+  }
 }
