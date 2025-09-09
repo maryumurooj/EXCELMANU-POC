@@ -198,12 +198,21 @@ namespace ExcelDataManipulator.API.Controllers
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"⚠️ Failed to parse delimiters: {ex.Message}");
-                                delimitersArray = null;
                             }
                         }
 
                         var concatColumnName = ParseJsonString(request.Parameters?.GetValueOrDefault("newColumnName"), "Concatenated");
-                        result = _operationsService.ConcatenateColumns(currentData, request.SelectedColumns!, delimitersArray, concatColumnName);
+                        var constantText = ParseJsonString(request.Parameters?.GetValueOrDefault("constantText"), null);
+                        var position = ParseJsonString(request.Parameters?.GetValueOrDefault("position"), "suffix");
+
+                        result = _operationsService.ConcatenateColumns(
+                            currentData,
+                            request.SelectedColumns!,
+                            delimitersArray,
+                            concatColumnName,
+                            constantText,
+                            position
+                        );
                         break;
 
                     case "sum":
@@ -255,6 +264,31 @@ namespace ExcelDataManipulator.API.Controllers
                         result = _operationsService.CountColumns(currentData, request.SelectedColumns!);
                         break;
 
+                    case "split":
+                        var splitDelimiter = ParseJsonString(request.Parameters?.GetValueOrDefault("delimiter"), ",");
+                        var maxSplitsParam = request.Parameters?.GetValueOrDefault("maxSplits")?.ToString();
+                        int? maxSplits = null;
+                        if (!string.IsNullOrEmpty(maxSplitsParam) && int.TryParse(maxSplitsParam, out int parsedMaxSplits))
+                        {
+                            maxSplits = parsedMaxSplits;
+                        }
+                        var splitColumnBaseName = ParseJsonString(request.Parameters?.GetValueOrDefault("columnBaseName"), null);
+
+                        if (request.SelectedColumns?.Length != 1)
+                        {
+                            return BadRequest(new { success = false, message = "Please select exactly one column to split" });
+                        }
+
+                        result = _operationsService.SplitColumnByDelimiter(
+                            currentData,
+                            request.SelectedColumns[0],
+                            splitDelimiter,
+                            maxSplits,
+                            splitColumnBaseName
+                        );
+                        break;
+
+
                     default:
                         throw new ArgumentException($"Unknown operation: {request.Operation}");
                 }
@@ -281,20 +315,7 @@ namespace ExcelDataManipulator.API.Controllers
             }
         }
 
-        [HttpGet("export")]
-        public ActionResult ExportFile()
-        {
-            try
-            {
-                var fileBytes = _excelService.ExportToExcel();
-                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "exported_data.xlsx");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-        
+       
 
 [HttpGet("export/json")]
     public async Task<IActionResult> ExportJson()
@@ -376,7 +397,100 @@ namespace ExcelDataManipulator.API.Controllers
         }
     }
 
-    private Column[] CreateParquetColumns(ExcelDataModel data)
+    [HttpGet("export")]
+        public async Task<IActionResult> ExportData(string format = "excel", bool exportAllSheets = false)
+        {
+            try
+            {
+                string fileName = exportAllSheets ? "export_all_sheets" : "export_current_sheet";
+
+                switch (format.ToLower())
+                {
+                    case "excel":
+                        byte[] excelBytes = exportAllSheets
+                            ? _excelService.ExportAllSheetsToExcel()
+                            : _excelService.ExportToExcel();
+                        return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{fileName}.xlsx");
+
+                    case "json":
+                        byte[] jsonBytes = exportAllSheets
+                            ? _excelService.ExportAllSheetsToJson()
+                            : await ExportCurrentSheetToJson();
+                        return File(jsonBytes, "application/json", $"{fileName}.json");
+
+                    case "parquet":
+                        byte[] parquetBytes = exportAllSheets
+                            ? _excelService.ExportAllSheetsToParquet()
+                            : await ExportCurrentSheetToParquet();
+                        return File(parquetBytes, "application/octet-stream", $"{fileName}.parquet");
+
+                    default:
+                        return BadRequest(new { message = "Supported formats: excel, json, parquet" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        private async Task<byte[]> ExportCurrentSheetToJson()
+        {
+            var currentData = _excelService.GetCurrentData();
+            var jsonData = new
+            {
+                fileName = "exported_current_sheet",
+                exportedAt = DateTime.Now,
+                sheet = new
+                {
+                    name = _excelService.GetActiveSheetName(),
+                    headers = currentData.Headers,
+                    data = currentData.Data,
+                    rowCount = currentData.RowCount,
+                    columnCount = currentData.ColumnCount
+                }
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            string jsonString = JsonSerializer.Serialize(jsonData, options);
+            return System.Text.Encoding.UTF8.GetBytes(jsonString);
+        }
+
+        private async Task<byte[]> ExportCurrentSheetToParquet()
+        {
+            var currentData = _excelService.GetCurrentData();
+
+            using var memoryStream = new MemoryStream();
+            var columns = CreateParquetColumns(currentData);
+
+            using (var parquetWriter = new ParquetFileWriter(memoryStream, columns))
+            {
+                using var rowGroupWriter = parquetWriter.AppendRowGroup();
+
+                for (int columnIndex = 0; columnIndex < currentData.ColumnCount; columnIndex++)
+                {
+                    var columnData = new string[currentData.RowCount];
+                    for (int rowIndex = 0; rowIndex < currentData.RowCount; rowIndex++)
+                    {
+                        columnData[rowIndex] = currentData.Data[rowIndex][columnIndex] ?? "";
+                    }
+
+                    using var columnWriter = rowGroupWriter.NextColumn().LogicalWriter<string>();
+                    columnWriter.WriteBatch(columnData);
+                }
+
+                parquetWriter.Close();
+            }
+
+            return memoryStream.ToArray();
+        }
+
+        private Column[] CreateParquetColumns(ExcelDataModel data)
     {
         var columns = new Column[data.ColumnCount];
 

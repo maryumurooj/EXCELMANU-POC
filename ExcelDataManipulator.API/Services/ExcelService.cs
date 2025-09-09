@@ -1,5 +1,8 @@
-﻿using OfficeOpenXml;
-using ExcelDataManipulator.API.Models;
+﻿using ExcelDataManipulator.API.Models;
+using OfficeOpenXml;
+using ParquetSharp;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ExcelDataManipulator.API.Services
 {
@@ -162,5 +165,137 @@ namespace ExcelDataManipulator.API.Services
 
             return package.GetAsByteArray();
         }
+
+
+        // Get all sheets data
+        public Dictionary<string, ExcelDataModel> GetAllSheetsData()
+        {
+            return new Dictionary<string, ExcelDataModel>(_sheetsData);
+        }
+
+        // Export all sheets to Excel (multi-sheet workbook)
+        public byte[] ExportAllSheetsToExcel()
+        {
+            ExcelPackage.License.SetNonCommercialPersonal("Your Name");
+
+            using var package = new ExcelPackage();
+
+            foreach (var sheetName in _sheetNames)
+            {
+                var sheetData = _sheetsData[sheetName];
+                var worksheet = package.Workbook.Worksheets.Add(sheetName);
+
+                // Add headers
+                for (int col = 0; col < sheetData.Headers.Length; col++)
+                {
+                    worksheet.Cells[1, col + 1].Value = sheetData.Headers[col];
+                }
+
+                // Add data
+                for (int row = 0; row < sheetData.Data.Length; row++)
+                {
+                    for (int col = 0; col < sheetData.Data[row].Length; col++)
+                    {
+                        worksheet.Cells[row + 2, col + 1].Value = sheetData.Data[row][col];
+                    }
+                }
+            }
+
+            return package.GetAsByteArray();
+        }
+
+        // Export all sheets to JSON
+        public byte[] ExportAllSheetsToJson()
+        {
+            var allSheetsData = new
+            {
+                fileName = "exported_all_sheets",
+                exportedAt = DateTime.Now,
+                totalSheets = _sheetNames.Count,
+                sheets = _sheetNames.Select(sheetName => new
+                {
+                    name = sheetName,
+                    headers = _sheetsData[sheetName].Headers,
+                    data = _sheetsData[sheetName].Data,
+                    rowCount = _sheetsData[sheetName].RowCount,
+                    columnCount = _sheetsData[sheetName].ColumnCount
+                }).ToArray()
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            string jsonString = JsonSerializer.Serialize(allSheetsData, options);
+            return System.Text.Encoding.UTF8.GetBytes(jsonString);
+        }
+
+        // Export all sheets to Parquet (multiple files in ZIP or single file with all data)
+        public byte[] ExportAllSheetsToParquet()
+        {
+            // Approach 1: Combine all sheets into one large dataset
+            var combinedHeaders = new List<string> { "SheetName" };
+            var maxColumnCount = _sheetsData.Values.Max(s => s.ColumnCount);
+
+            // Add headers from the sheet with most columns
+            var largestSheet = _sheetsData.Values.OrderByDescending(s => s.ColumnCount).First();
+            combinedHeaders.AddRange(largestSheet.Headers);
+
+            // Pad headers to ensure consistent column count
+            while (combinedHeaders.Count < maxColumnCount + 1)
+            {
+                combinedHeaders.Add($"Column_{combinedHeaders.Count}");
+            }
+
+            using var memoryStream = new MemoryStream();
+            var columns = combinedHeaders.Select((header, index) =>
+                new Column<string>(Regex.Replace(header, @"[^a-zA-Z0-9_]", "_"))).ToArray();
+
+            using (var parquetWriter = new ParquetFileWriter(memoryStream, columns))
+            {
+                using var rowGroupWriter = parquetWriter.AppendRowGroup();
+
+                var allData = new List<string[]>();
+
+                // Combine all sheets data
+                foreach (var sheetName in _sheetNames)
+                {
+                    var sheetData = _sheetsData[sheetName];
+                    foreach (var row in sheetData.Data)
+                    {
+                        var combinedRow = new string[maxColumnCount + 1];
+                        combinedRow[0] = sheetName; // First column is sheet name
+
+                        for (int i = 0; i < Math.Min(row.Length, maxColumnCount); i++)
+                        {
+                            combinedRow[i + 1] = row[i] ?? "";
+                        }
+
+                        // Fill remaining columns with empty strings
+                        for (int i = row.Length + 1; i < combinedRow.Length; i++)
+                        {
+                            combinedRow[i] = "";
+                        }
+
+                        allData.Add(combinedRow);
+                    }
+                }
+
+                // Write each column
+                for (int columnIndex = 0; columnIndex < combinedHeaders.Count; columnIndex++)
+                {
+                    var columnData = allData.Select(row => row[columnIndex] ?? "").ToArray();
+                    using var columnWriter = rowGroupWriter.NextColumn().LogicalWriter<string>();
+                    columnWriter.WriteBatch(columnData);
+                }
+
+                parquetWriter.Close();
+            }
+
+            return memoryStream.ToArray();
+        }
+
     }
 }
