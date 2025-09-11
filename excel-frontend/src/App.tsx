@@ -1,366 +1,213 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Tabs,
-  Tab,
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
-  AppBar,
-  Toolbar as MuiToolbar,
-  Chip,
-  Stack,
+import React, { useState, useCallback } from 'react';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  Paper, 
   Button,
-} from "@mui/material";
-import { Analytics, TableView,Undo, Redo } from "@mui/icons-material";
-import FileUpload from "./components/FileUpload";
-import AGDataGrid from "./components/AGDataGrid";
-import Toolbar from "./components/Toolbar";
-import { ExcelData } from "./types/ExcelTypes";
-import { useUndoRedo } from './hooks/useUndoRedo';
-import axios from "axios";
+  Alert,
+  CircularProgress,
+  Chip
+} from '@mui/material';
+import { Upload } from '@mui/icons-material';
+import StreamingExcelService from './Services/StreamingExcelService';
+import StreamingToolbar from './components/StreamingToolbar';
+import StreamingDataGrid from './components/StreamingDataGrid';
 
-const elegantTheme = createTheme({
-  palette: {
-    mode: "light",
-    primary: {
-      main: "#2563eb", // Clean blue
-      light: "#3b82f6",
-      dark: "#1d4ed8",
-    },
-    secondary: {
-      main: "#10b981", // Emerald
-      light: "#34d399",
-      dark: "#059669",
-    },
-    background: {
-      default: "#fafbfc",
-      paper: "#ffffff",
-    },
-    text: {
-      primary: "#1f2937",
-      secondary: "#6b7280",
-    },
-    grey: {
-      50: "#f9fafb",
-      100: "#f3f4f6",
-      200: "#e5e7eb",
-      300: "#d1d5db",
-      400: "#9ca3af",
-      500: "#6b7280",
-    },
-  },
-  shape: {
-    borderRadius: 8,
-  },
-  typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h4: {
-      fontWeight: 700,
-      fontSize: "2rem",
-      color: "#1f2937",
-    },
-    h6: {
-      fontWeight: 600,
-    },
-  },
-  components: {
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          boxShadow:
-            "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
-          border: "1px solid #e5e7eb",
-        },
-      },
-    },
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: "none",
-          fontWeight: 500,
-          borderRadius: 6,
-          boxShadow: "none",
-          "&:hover": {
-            boxShadow:
-              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-          },
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          backgroundColor: "#ffffff",
-          color: "#1f2937",
-          boxShadow:
-            "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
-        },
-      },
-    },
-    MuiTab: {
-      styleOverrides: {
-        root: {
-          textTransform: "none",
-          fontWeight: 500,
-          borderRadius: 6,
-          marginRight: 8,
-          minHeight: 40,
-          "&.Mui-selected": {
-            backgroundColor: "#eff6ff",
-            color: "#2563eb",
-          },
-        },
-      },
-    },
-  },
-});
+interface ExcelDataSummary {
+  headers: string[];
+  rowCount: number;
+  columnCount: number;
+  activeSheet: string;
+  availableSheets: string[];
+  metadata: Record<string, any>;
+}
 
-function App() {
-  const [selectedCells, setSelectedCells] = useState<{
-    rows: number[];
-    columns: number[];
-    cells: { row: number; col: number }[];
-    selectedColumnFields: string[];
-  }>({ rows: [], columns: [], cells: [], selectedColumnFields: [] });
+interface SelectedCells {
+  rows: number[];
+  columns: number[];
+  cells: { row: number; col: number }[];
+  selectedColumnFields: string[];
+}
 
-  const [sheets, setSheets] = useState<string[]>([]);
-  const [activeSheet, setActiveSheet] = useState<string>("");
+interface DeltaResponse {
+  operation: string;
+  newColumns?: ColumnData[];
+  modifiedColumns?: ColumnData[];
+  updatedSummary: ExcelDataSummary;
+  message: string;
+}
 
+interface ColumnData {
+  name: string;
+  index: number;
+  values: string[];
+  dataType: string;
+}
 
-  const {
-    state: excelData,
-    setState: setExcelData,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    clearHistory,
-    historyCount // ✅ Destructure the counts
-  } = useUndoRedo<ExcelData | null>(null, 100); // Keep 100 states in history
+const App: React.FC = () => {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [summary, setSummary] = useState<ExcelDataSummary | null>(null);
+  const [selectedCells, setSelectedCells] = useState<SelectedCells>({
+    rows: [],
+    columns: [],
+    cells: [],
+    selectedColumnFields: []
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleFileUpload = useCallback(async (data: ExcelData) => {
-    setExcelData(data);
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await axios.get(
-        "http://localhost:5018/api/excel/sheets"
-      );
-      setSheets(response.data);
-
-      const activeResponse = await axios.get(
-        "http://localhost:5018/api/excel/activesheet"
-      );
-      setActiveSheet(activeResponse.data.activeSheet);
-      clearHistory();
-    } catch (error) {
-      console.error("Error loading sheets:", error);
+      const result = await StreamingExcelService.uploadFile(file);
+      setSessionId(result.sessionId);
+      setSummary(result.summary);
+      setSelectedCells({
+        rows: [],
+        columns: [],
+        cells: [],
+        selectedColumnFields: []
+      });
+    } catch (e: any) {
+      setError(e.message || 'Upload failed');
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
+  const handleOperationComplete = useCallback((delta: DeltaResponse) => {
+    setSummary(delta.updatedSummary);
     setSelectedCells({
       rows: [],
       columns: [],
       cells: [],
-      selectedColumnFields: [],
+      selectedColumnFields: []
     });
-  }, [setExcelData, clearHistory]);
+    console.log('Operation completed:', delta.message);
+  }, []);
 
-  const handleSheetChange = useCallback(
-    async (event: React.SyntheticEvent, newSheet: string) => {
-      try {
-        const response = await axios.post(
-          "http://localhost:5018/api/excel/activesheet",
-          JSON.stringify(newSheet),
-          { headers: { "Content-Type": "application/json" } }
-        );
+  const handleSelectionChange = useCallback((selection: SelectedCells) => {
+    setSelectedCells(selection);
+  }, []);
 
-        setActiveSheet(newSheet);
-        setExcelData(response.data.data);
-        setSelectedCells({
-          rows: [],
-          columns: [],
-          cells: [],
-          selectedColumnFields: [],
-        });
-      } catch (error) {
-        console.error("Error switching sheet:", error);
-      }
-    },
-    []
-  );
-
-  const handleDataUpdate = useCallback(async (data: ExcelData) => {
-    setExcelData(data);
-
-    try {
-      const sheetsResponse = await axios.get(
-        "http://localhost:5018/api/excel/sheets"
-      );
-      setSheets(sheetsResponse.data);
-
-      const activeResponse = await axios.get(
-        "http://localhost:5018/api/excel/activesheet"
-      );
-      setActiveSheet(activeResponse.data.activeSheet);
-    } catch (error) {
-      console.error("Error refreshing sheets:", error);
-    }
-  }, [setExcelData]);
-
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
-        event.preventDefault();
-        undo();
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key === 'y') {
-        event.preventDefault();
-        redo();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
-
+  const clearSession = useCallback(() => {
+    StreamingExcelService.clearSession();
+    setSessionId(null);
+    setSummary(null);
+    setSelectedCells({
+      rows: [],
+      columns: [],
+      cells: [],
+      selectedColumnFields: []
+    });
+    setError(null);
+  }, []);
 
   return (
-    <ThemeProvider theme={elegantTheme}>
-      <CssBaseline />
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom align="center">
+        📊 Excel Data Manipulator (Streaming)
+      </Typography>
 
-      {/* Clean Header */}
-      <AppBar position="static" elevation={0}>
-        <MuiToolbar sx={{ py: 1 }}>
-          <Analytics sx={{ mr: 2, color: "primary.main" }} />
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{ flexGrow: 1, fontWeight: 600 }}
-          >
-            Excel Data Studio
+      {/* File Upload Section */}
+      {!sessionId && (
+        <Paper elevation={3} sx={{ p: 4, textAlign: 'center', mb: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Upload Excel File
           </Typography>
-          {excelData && (
-            <Stack direction="row" spacing={1}>
-              <Chip
-                icon={<TableView />}
-                label={`${excelData.data.length} rows`}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-              <Chip
-                label={`${excelData.headers.length} columns`}
-                size="small"
-                color="secondary"
-                variant="outlined"
-              />
-            </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Supported formats: .xlsx, .xls
+          </Typography>
+          
+          <input
+            accept=".xlsx,.xls"
+            style={{ display: 'none' }}
+            id="excel-file-upload"
+            type="file"
+            onChange={handleFileUpload}
+            disabled={loading}
+          />
+          <label htmlFor="excel-file-upload">
+            <Button
+              variant="contained"
+              component="span"
+              startIcon={loading ? <CircularProgress size={20} /> : <Upload />}
+              disabled={loading}
+              size="large"
+            >
+              {loading ? 'Processing...' : 'Choose Excel File'}
+            </Button>
+          </label>
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 3 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
           )}
-        </MuiToolbar>
-      </AppBar>
+        </Paper>
+      )}
 
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Welcome Section */}
-
-        <Box sx={{ mb: 4 }}>
-          <FileUpload onUpload={handleFileUpload} />
-        </Box>
-
-        {excelData && excelData.headers && excelData.headers.length > 0 && (
-          <Paper elevation={3} sx={{ p: 2 }}>
-          {/* ✅ Add Undo/Redo buttons */}
-          <Box sx={{ mb: 2, display: 'flex', gap: 1 }}>
+      {/* Main Application */}
+      {sessionId && summary && (
+        <Paper elevation={3} sx={{ p: 2 }}>
+          {/* Session Info */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Chip 
+                label={`Session: ${sessionId.substring(0, 8)}...`} 
+                color="primary" 
+                size="small" 
+              />
+              <Chip 
+                label={`${summary.rowCount} rows × ${summary.columnCount} cols`} 
+                color="secondary" 
+                size="small" 
+              />
+              {summary.availableSheets.length > 1 && (
+                <Chip 
+                  label={`${summary.availableSheets.length} sheets`} 
+                  color="info" 
+                  size="small" 
+                />
+              )}
+            </Box>
+            
             <Button
               variant="outlined"
-              startIcon={<Undo />}
-              onClick={undo}
-              disabled={!canUndo}
+              color="secondary"
+              onClick={clearSession}
               size="small"
             >
-              Undo (Ctrl+Z)
+              New File
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<Redo />}
-              onClick={redo}
-              disabled={!canRedo}
-              size="small"
-            >
-              Redo (Ctrl+Y)
-            </Button>
-
-            {/* Optional: History status */}
-            {(canUndo || canRedo) && (
-  <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
-    {canUndo ? `${historyCount.past} steps back` : 'No undo available'}
-    {canRedo && ` | ${historyCount.future} steps forward`}
-  </Typography>
-)}
           </Box>
 
-            {/* Sheet Tabs */}
-            {sheets.length > 1 && (
-              <Box
-                sx={{
-                  borderBottom: 1,
-                  borderColor: "grey.200",
-                  px: 3,
-                  pt: 2,
-                  backgroundColor: "grey.50",
-                }}
-              >
-                <Tabs
-                  value={activeSheet}
-                  onChange={handleSheetChange}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  sx={{
-                    "& .MuiTabs-indicator": {
-                      display: "none",
-                    },
-                  }}
-                >
-                  {sheets.map((sheetName) => (
-                    <Tab key={sheetName} label={sheetName} value={sheetName} />
-                  ))}
-                </Tabs>
-              </Box>
-            )}
+          {/* Toolbar */}
+          <StreamingToolbar
+            sessionId={sessionId}
+            selectedCells={selectedCells}
+            summary={summary}
+            onOperationComplete={handleOperationComplete}
+          />
 
-            {/* Toolbar */}
-            <Box
-              sx={{
-                p: 3,
-                borderBottom: 1,
-                borderColor: "grey.200",
-                backgroundColor: "grey.50",
-              }}
-            >
-              <Toolbar
-                selectedCells={selectedCells}
-                onDataUpdate={handleDataUpdate}
-                currentData={excelData}
-                sheets={sheets} // ✅ Pass sheets array
-                activeSheet={activeSheet} // ✅ Pass active sheet name
-              />
-            </Box>
-
-            {/* Data Grid */}
-            <Box sx={{ p: 3 }}>
-              <AGDataGrid
-                data={excelData}
-                onSelectionChange={setSelectedCells}
-              />
-            </Box>
-          </Paper>
-        )}
-      </Container>
-    </ThemeProvider>
+          {/* Data Grid */}
+          <Box sx={{ mt: 2 }}>
+            <StreamingDataGrid
+              sessionId={sessionId}
+              summary={summary}
+              onSelectionChange={handleSelectionChange}
+            />
+          </Box>
+        </Paper>
+      )}
+    </Container>
   );
-}
+};
 
 export default App;

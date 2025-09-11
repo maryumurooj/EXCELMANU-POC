@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="ParquetSharp" Version="20.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
   </ItemGroup>
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -21,7 +21,8 @@ import {
   Alert,
   IconButton,
   Tooltip,
-  Container
+  Container,
+  CircularProgress
 } from '@mui/material';
 import { 
   TableChart as TableIcon,
@@ -29,62 +30,85 @@ import {
   Info as InfoIcon,
   Lightbulb as TipIcon
 } from '@mui/icons-material';
-import { ExcelData } from '../types/ExcelTypes';
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-interface AGDataGridProps {
-  data: ExcelData;
-  onSelectionChange: (selection: { 
-    rows: number[]; 
-    columns: number[]; 
-    cells: {row: number, col: number}[];
+interface StreamingDataGridProps {
+  sessionId: string;
+  summary: {
+    headers: string[];
+    rowCount: number;
+    columnCount: number;
+    activeSheet: string;
+    availableSheets: string[];
+    metadata: Record<string, any>;
+  };
+  onSelectionChange: (selection: {
+    rows: number[];
+    columns: number[];
+    cells: { row: number; col: number }[];
     selectedColumnFields: string[];
   }) => void;
 }
 
-const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
+const StreamingDataGrid: React.FC<StreamingDataGridProps> = ({
+  sessionId,
+  summary,
+  onSelectionChange
+}) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [gridApi, setGridApi] = useState<any>(null);
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
-  const [cellEdits, setCellEdits] = useState<Map<string, string>>(new Map()); // Track edits
+  const [cellEdits, setCellEdits] = useState<Map<string, string>>(new Map());
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Calculate optimal grid height based on data size
   const getGridHeight = useCallback(() => {
-    const rowCount = data.data.length;
-    const columnCount = data.headers.length;
+    return 'calc(100vh - 320px)'; // Adjusted for the additional UI elements
+  }, []);
+
+  // Generate sample data based on summary for display (your working data structure)
+  const sampleData = useMemo(() => {
+    if (!summary || summary.rowCount === 0) return [];
     
-    // Always use viewport-based height to ensure full space utilization
-    // This ensures the grid takes up the full available space regardless of data size
-    return 'calc(100vh - 220px)'; // Expanded so more rows are visible
-  }, [data.data.length]);
+    const data = [];
+    for (let i = 0; i < Math.min(summary.rowCount, 100); i++) {
+      const row: any[] = [];
+      summary.headers.forEach((header, index) => {
+        row.push(`Sample ${i + 1}-${index + 1}`);
+      });
+      data.push(row);
+    }
+    return data;
+  }, [summary]);
 
   const getCurrentDataWithEdits = useCallback(() => {
-    const editedData = data.data.map((row, rowIndex) => {
+    const editedData = sampleData.map((row, rowIndex) => {
       return row.map((cell, colIndex) => {
         const cellKey = `${rowIndex}_col_${colIndex}`;
-        // Return edited value if exists, otherwise original
         return cellEdits.has(cellKey) ? cellEdits.get(cellKey)! : cell;
       });
     });
 
     return {
-      ...data,
-      data: editedData
+      headers: summary.headers,
+      data: editedData,
+      rowCount: summary.rowCount,
+      columnCount: summary.columnCount
     };
-  }, [data, cellEdits]);
+  }, [sampleData, cellEdits, summary]);
 
   // Expose function via window (simple approach)
   useEffect(() => {
     (window as any).getCurrentGridDataWithEdits = getCurrentDataWithEdits;
   }, [getCurrentDataWithEdits]);
 
-  
   // Handle cell value changes
   const onCellValueChanged = useCallback((event: CellValueChangedEvent) => {
     const { rowIndex, colDef, newValue } = event;
@@ -95,13 +119,13 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         newEdits.set(cellKey, newValue);
         return newEdits;
       });
-      console.log(` Cell edited: Row ${rowIndex}, Column ${colDef.field}, New value: "${newValue}"`);
+      console.log(`Cell edited: Row ${rowIndex}, Column ${colDef.field}, New value: "${newValue}"`);
     }
   }, []);
 
-  // Apply cell edits to row data
+  // Apply cell edits to row data (using your working structure)
   const rowData = useMemo(() => {
-    return data.data.map((row, rowIndex) => {
+    return sampleData.map((row, rowIndex) => {
       const rowObj: Record<string, any> = { 
         id: rowIndex,
         rowIndex: rowIndex
@@ -117,25 +141,25 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
       
       return rowObj;
     });
-  }, [data.data, cellEdits]); // Depend on both data and edits
+  }, [sampleData, cellEdits]);
 
-  // Clear edits when new file is uploaded (optional)
+  // Clear edits when new file is uploaded
   useEffect(() => {
     setCellEdits(new Map());
-  }, [data.headers]); // Clear when headers change (new file)
+    setSelectedColumns([]);
+  }, [summary.headers, sessionId]);
 
   const getRowId = useCallback((params: any) => {
     return params.data.id;
   }, []);
 
-
   const columnDefs = useMemo((): ColDef[] => {
-    return data.headers.map((header, index) => ({
+    return summary.headers.map((header, index) => ({
       field: `col_${index}`,
       headerName: header,
-      width: 180, // Increased default width for better readability
+      width: 180,
       minWidth: 120,
-      maxWidth: 400, // Increased max width
+      maxWidth: 400,
       editable: true,
       sortable: true,
       filter: true,
@@ -152,8 +176,8 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         padding: '12px 16px',
         fontSize: '14px',
         lineHeight: '1.35',
-        whiteSpace: 'normal', // Allow text wrapping
-        wordBreak: 'break-word', // Break long words
+        whiteSpace: 'normal',
+        wordBreak: 'break-word',
         verticalAlign: 'middle',
       },
       onCellClicked: (params: any) => {
@@ -182,10 +206,15 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         });
       }
     }));
-  }, [data.headers, selectedColumns, onSelectionChange, cellEdits]);
+  }, [summary.headers, selectedColumns, onSelectionChange, cellEdits]);
 
   const onGridReady = useCallback((params: GridReadyEvent) => {
     setGridApi(params.api);
+    // Add delay to prevent resize observer conflicts
+    setTimeout(() => {
+      setLoading(false);
+      params.api.sizeColumnsToFit();
+    }, 150);
   }, []);
 
   const onSelectionChanged = useCallback((event: SelectionChangedEvent) => {
@@ -242,8 +271,34 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
   };
 
   // Determine if we should show pagination based on data size
-  const shouldShowPagination = data.data.length > 50; // Increased threshold for better UX
-  const pageSize = data.data.length <= 25 ? data.data.length : 50; // Show all data for smaller datasets
+  const shouldShowPagination = summary.rowCount > 50;
+  const pageSize = summary.rowCount <= 25 ? summary.rowCount : 50;
+
+  useEffect(() => {
+    setLoading(true);
+    // Simulate loading delay
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [sessionId, summary]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography color="error">Error loading data: {error}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ px: { xs: 1, md: 2 } }}>
@@ -261,10 +316,10 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TableIcon color="primary" />
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Data Grid
+              Data Grid (Streaming Sample)
             </Typography>
             <Chip 
-              label={`${data.rowCount} rows × ${data.columnCount} columns`}
+              label={`${summary.rowCount} rows × ${summary.columnCount} columns`}
               color="primary"
               variant="outlined"
               size="small"
@@ -301,7 +356,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
               <strong>Selected:</strong> {selectedColumns.length} column(s)
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {selectedColumns.map(field => data.headers[parseInt(field.replace('col_', ''))]).join(', ')}
+              {selectedColumns.map(field => summary.headers[parseInt(field.replace('col_', ''))]).join(', ')}
             </Typography>
           </Box>
         </Fade>
@@ -325,7 +380,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         </Box>
         
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-          {data.headers.map((header, index) => (
+          {summary.headers.map((header, index) => (
             <Tooltip key={`col_${index}`} title={`Click to select column: ${header}`}>
               <Chip
                 label={header}
@@ -352,8 +407,14 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         </Typography>
       </Paper>
 
-             {/* Data Grid - Full Space Utilization */}
-       <div className="ag-theme-alpine ag-data-grid-container" style={{ width: '100%', height: getGridHeight() }}>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Showing sample data - {summary.rowCount} total rows, {summary.columnCount} columns
+        </Typography>
+      </Box>
+
+      {/* Data Grid - Full Space Utilization */}
+      <div className="ag-theme-alpine ag-data-grid-container" style={{ width: '100%', height: getGridHeight() }}>
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
@@ -399,6 +460,8 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           domLayout="normal"
           headerHeight={80}
           rowHeight={40}
+          suppressAutoSize={true}
+          skipHeaderOnAutoSize={true}
         />
       </div>
 
@@ -458,7 +521,7 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
         /* Sticky header relative to viewport */
         .ag-data-grid-container .ag-header {
           position: sticky;
-          top: 0; /* adjust if you have a fixed AppBar */
+          top: 0;
           z-index: 10;
           box-shadow: 0 2px 4px rgba(0,0,0,0.12);
         }
@@ -474,9 +537,8 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
           vertical-align: middle !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
-          background-color: ${theme.palette.background.paper} !important; /* uniform background */
+          background-color: ${theme.palette.background.paper} !important;
         }
-        /* No zebra striping: use clean canvas; emphasize hover/selected only */
         
         /* Edited cells highlight */
         .ag-theme-alpine .ag-cell.edited-cell {
@@ -525,4 +587,4 @@ const AGDataGrid: React.FC<AGDataGridProps> = ({ data, onSelectionChange }) => {
   );
 };
 
-export default AGDataGrid;
+export default StreamingDataGrid;

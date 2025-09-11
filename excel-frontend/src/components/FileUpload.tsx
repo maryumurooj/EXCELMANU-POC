@@ -51,7 +51,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
       console.log('Uploading file:', file.name, 'Size:', file.size);
   
       const response = await axios.post(
-        'http://localhost:5018/api/excel/upload',
+        'https://localhost:7217/api/excel/upload',
         formData,
         {
           headers: {

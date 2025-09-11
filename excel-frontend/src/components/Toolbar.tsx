@@ -111,7 +111,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       console.log(`Exporting ${scope} sheet(s) as ${format}`);
       
       const response = await axios.get(
-        `http://localhost:5018/api/excel/export?format=${format}&exportAllSheets=${exportAllSheets}`,
+        `https://localhost:7217/api/excel/export?format=${format}&exportAllSheets=${exportAllSheets}`,
         { responseType: "blob" }
       );
   
@@ -147,7 +147,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const handleExportExcel = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5018/api/excel/export",
+        "https://localhost:7217/api/excel/export",
         { responseType: "blob" }
       );
 
@@ -167,7 +167,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const handleExportJson = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5018/api/excel/export/json",
+        "https://localhost:7217/api/excel/export/json",
         { responseType: "blob" }
       );
 
@@ -187,7 +187,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const handleExportParquet = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5018/api/excel/export/parquet",
+        "https://localhost:7217/api/excel/export/parquet",
         { responseType: "blob" }
       );
 
@@ -237,7 +237,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       };
 
       const response = await axios.post(
-        "http://localhost:5018/api/excel/operation",
+        "https://localhost:7217/api/excel/operation",
         {
           ...request,
           currentData: currentDataWithEdits,
@@ -534,7 +534,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const handleExport = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5018/api/excel/export",
+        "https://localhost:7217/api/excel/export",
         {
           responseType: "blob",
         }
