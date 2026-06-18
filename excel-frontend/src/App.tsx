@@ -1,122 +1,213 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Container, Typography, Paper, Tabs, Tab } from '@mui/material';
-import FileUpload from './components/FileUpload';
-import AGDataGrid from './components/AGDataGrid';
-import Toolbar from './components/Toolbar';
-import { ExcelData } from './types/ExcelTypes';
-import axios from 'axios';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  Paper, 
+  Button,
+  Alert,
+  CircularProgress,
+  Chip
+} from '@mui/material';
+import { Upload } from '@mui/icons-material';
+import StreamingExcelService from './Services/StreamingExcelService';
+import StreamingToolbar from './components/StreamingToolbar';
+import StreamingDataGrid from './components/StreamingDataGrid';
 
-function App() {
-  const [excelData, setExcelData] = useState<ExcelData | null>(null);
-  const [selectedCells, setSelectedCells] = useState<{
-    rows: number[];
-    columns: number[];
-    cells: {row: number, col: number}[];
-    selectedColumnFields: string[];
-  }>({ rows: [], columns: [], cells: [], selectedColumnFields: [] });
-  
-  const [sheets, setSheets] = useState<string[]>([]);
-  const [activeSheet, setActiveSheet] = useState<string>('');
+interface ExcelDataSummary {
+  headers: string[];
+  rowCount: number;
+  columnCount: number;
+  activeSheet: string;
+  availableSheets: string[];
+  metadata: Record<string, any>;
+}
 
-  const handleFileUpload = useCallback(async (data: ExcelData) => {
-    setExcelData(data);
-    
+interface SelectedCells {
+  rows: number[];
+  columns: number[];
+  cells: { row: number; col: number }[];
+  selectedColumnFields: string[];
+}
+
+interface DeltaResponse {
+  operation: string;
+  newColumns?: ColumnData[];
+  modifiedColumns?: ColumnData[];
+  updatedSummary: ExcelDataSummary;
+  message: string;
+}
+
+interface ColumnData {
+  name: string;
+  index: number;
+  values: string[];
+  dataType: string;
+}
+
+const App: React.FC = () => {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [summary, setSummary] = useState<ExcelDataSummary | null>(null);
+  const [selectedCells, setSelectedCells] = useState<SelectedCells>({
+    rows: [],
+    columns: [],
+    cells: [],
+    selectedColumnFields: []
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+
     try {
-      const response = await axios.get('http://localhost:5018/api/excel/sheets');
-      setSheets(response.data);
-      
-      const activeResponse = await axios.get('http://localhost:5018/api/excel/activesheet');
-      setActiveSheet(activeResponse.data.activeSheet);
-    } catch (error) {
-      console.error('Error loading sheets:', error);
+      const result = await StreamingExcelService.uploadFile(file);
+      setSessionId(result.sessionId);
+      setSummary(result.summary);
+      setSelectedCells({
+        rows: [],
+        columns: [],
+        cells: [],
+        selectedColumnFields: []
+      });
+    } catch (e: any) {
+      setError(e.message || 'Upload failed');
+    } finally {
+      setLoading(false);
     }
-    
-    setSelectedCells({ rows: [], columns: [], cells: [], selectedColumnFields: [] });
   }, []);
 
-  const handleSheetChange = useCallback(async (event: React.SyntheticEvent, newSheet: string) => {
-    try {
-      const response = await axios.post('http://localhost:5018/api/excel/activesheet', 
-        JSON.stringify(newSheet), 
-        { headers: { 'Content-Type': 'application/json' }}
-      );
-      
-      setActiveSheet(newSheet);
-      setExcelData(response.data.data);
-      setSelectedCells({ rows: [], columns: [], cells: [], selectedColumnFields: [] });
-    } catch (error) {
-      console.error('Error switching sheet:', error);
-    }
+  const handleOperationComplete = useCallback((delta: DeltaResponse) => {
+    setSummary(delta.updatedSummary);
+    setSelectedCells({
+      rows: [],
+      columns: [],
+      cells: [],
+      selectedColumnFields: []
+    });
+    console.log('Operation completed:', delta.message);
   }, []);
 
-  const handleDataUpdate = useCallback(async (data: ExcelData) => {
-    setExcelData(data);
-    
-    try {
-      const sheetsResponse = await axios.get('http://localhost:5018/api/excel/sheets');
-      setSheets(sheetsResponse.data);
-      
-      const activeResponse = await axios.get('http://localhost:5018/api/excel/activesheet');
-      setActiveSheet(activeResponse.data.activeSheet);
-    } catch (error) {
-      console.error('Error refreshing sheets:', error);
-    }
+  const handleSelectionChange = useCallback((selection: SelectedCells) => {
+    setSelectedCells(selection);
+  }, []);
+
+  const clearSession = useCallback(() => {
+    StreamingExcelService.clearSession();
+    setSessionId(null);
+    setSummary(null);
+    setSelectedCells({
+      rows: [],
+      columns: [],
+      cells: [],
+      selectedColumnFields: []
+    });
+    setError(null);
   }, []);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom align="center">
-        Excel Data Manipulator
+        📊 Excel Data Manipulator (Streaming)
       </Typography>
-      
-      <Box sx={{ mb: 4 }}>
-        <FileUpload onUpload={handleFileUpload} />
-      </Box>
 
-      {/* ✅ Safe checking: only render when data exists and has headers */}
-      {excelData && excelData.headers && excelData.headers.length > 0 && (
-        <Paper elevation={3} sx={{ p: 2 }}>
-          {/* ✅ Sheet Tabs */}
-          {sheets.length > 1 && (
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-              <Tabs 
-                value={activeSheet} 
-                onChange={handleSheetChange}
-                variant="scrollable"
-                scrollButtons="auto"
-              >
-                {sheets.map((sheetName) => (
-                  <Tab 
-                    key={sheetName}
-                    label={sheetName} 
-                    value={sheetName}
-                    sx={{ 
-                      textTransform: 'none',
-                      fontWeight: activeSheet === sheetName ? 'bold' : 'normal'
-                    }}
-                  />
-                ))}
-              </Tabs>
-            </Box>
-          )}
+      {/* File Upload Section */}
+      {!sessionId && (
+        <Paper elevation={3} sx={{ p: 4, textAlign: 'center', mb: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Upload Excel File
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Supported formats: .xlsx, .xls
+          </Typography>
           
-          <Toolbar 
-            selectedCells={selectedCells}
-            onDataUpdate={handleDataUpdate}
-            currentData={excelData}
+          <input
+            accept=".xlsx,.xls"
+            style={{ display: 'none' }}
+            id="excel-file-upload"
+            type="file"
+            onChange={handleFileUpload}
+            disabled={loading}
           />
-          
+          <label htmlFor="excel-file-upload">
+            <Button
+              variant="contained"
+              component="span"
+              startIcon={loading ? <CircularProgress size={20} /> : <Upload />}
+              disabled={loading}
+              size="large"
+            >
+              {loading ? 'Processing...' : 'Choose Excel File'}
+            </Button>
+          </label>
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 3 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+        </Paper>
+      )}
+
+      {/* Main Application */}
+      {sessionId && summary && (
+        <Paper elevation={3} sx={{ p: 2 }}>
+          {/* Session Info */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Chip 
+                label={`Session: ${sessionId.substring(0, 8)}...`} 
+                color="primary" 
+                size="small" 
+              />
+              <Chip 
+                label={`${summary.rowCount} rows × ${summary.columnCount} cols`} 
+                color="secondary" 
+                size="small" 
+              />
+              {summary.availableSheets.length > 1 && (
+                <Chip 
+                  label={`${summary.availableSheets.length} sheets`} 
+                  color="info" 
+                  size="small" 
+                />
+              )}
+            </Box>
+            
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={clearSession}
+              size="small"
+            >
+              New File
+            </Button>
+          </Box>
+
+          {/* Toolbar */}
+          <StreamingToolbar
+            sessionId={sessionId}
+            selectedCells={selectedCells}
+            summary={summary}
+            onOperationComplete={handleOperationComplete}
+          />
+
+          {/* Data Grid */}
           <Box sx={{ mt: 2 }}>
-            <AGDataGrid
-              data={excelData}
-              onSelectionChange={setSelectedCells}
+            <StreamingDataGrid
+              sessionId={sessionId}
+              summary={summary}
+              onSelectionChange={handleSelectionChange}
             />
           </Box>
         </Paper>
       )}
     </Container>
   );
-}
-
+};
 
 export default App;

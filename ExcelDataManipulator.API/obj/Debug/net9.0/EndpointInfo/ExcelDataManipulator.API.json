@@ -5,10 +5,10 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/Excel/upload": {
+    "/api/excel/upload": {
       "post": {
         "tags": [
-          "Excel"
+          "StreamingExcel"
         ],
         "requestBody": {
           "content": {
@@ -37,64 +37,36 @@
         }
       }
     },
-    "/api/Excel/sheets": {
-      "get": {
-        "tags": [
-          "Excel"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/Excel/activesheet": {
+    "/api/excel/sessions/{sessionId}/operations": {
       "post": {
         "tags": [
-          "Excel"
+          "StreamingExcel"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/OperationCommand"
               }
             },
             "text/json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/OperationCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/OperationCommand"
               }
             }
           }
@@ -104,87 +76,89 @@
             "description": "OK"
           }
         }
-      },
+      }
+    },
+    "/api/excel/sessions/{sessionId}/summary": {
       "get": {
         "tags": [
-          "Excel"
+          "StreamingExcel"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sheetName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "OK"
           }
         }
       }
     },
-    "/api/Excel/operation": {
-      "post": {
+    "/api/excel/sessions/{sessionId}/export": {
+      "get": {
         "tags": [
-          "Excel"
+          "StreamingExcel"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OperationRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OperationRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/OperationRequest"
-              }
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "excel"
+            }
+          },
+          {
+            "name": "allSheets",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationResponse"
-                }
-              }
-            }
+            "description": "OK"
           }
         }
       }
     },
-    "/api/Excel/export": {
-      "get": {
+    "/api/excel/sessions/{sessionId}": {
+      "delete": {
         "tags": [
-          "Excel"
+          "StreamingExcel"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -196,83 +170,33 @@
   },
   "components": {
     "schemas": {
-      "ExcelDataModel": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "nullable": true
-          },
-          "headers": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "rowCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "columnCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "OperationRequest": {
+      "OperationCommand": {
+        "required": [
+          "columnIndices",
+          "operation",
+          "sheetName"
+        ],
         "type": "object",
         "properties": {
           "operation": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
-          "selectedRows": {
+          "sheetName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "columnIndices": {
             "type": "array",
             "items": {
               "type": "integer",
               "format": "int32"
-            },
-            "nullable": true
-          },
-          "selectedColumns": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "nullable": true
+            }
           },
           "parameters": {
             "type": "object",
             "additionalProperties": { },
             "nullable": true
-          },
-          "currentData": {
-            "$ref": "#/components/schemas/ExcelDataModel"
-          }
-        },
-        "additionalProperties": false
-      },
-      "OperationResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "data": {
-            "$ref": "#/components/schemas/ExcelDataModel"
           }
         },
         "additionalProperties": false

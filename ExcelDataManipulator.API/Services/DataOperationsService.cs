@@ -1,11 +1,18 @@
 ﻿using ExcelDataManipulator.API.Models;
+using System.Text;
 
 namespace ExcelDataManipulator.API.Services
 {
     public class DataOperationsService
     {
-        public ExcelDataModel ConcatenateColumns(ExcelDataModel data, int[] columnIndices, string delimiter = "")
+        public ExcelDataModel ConcatenateColumns(ExcelDataModel data, int[] columnIndices, string[] delimiters = null, string newColumnName = "Concatenated", string constantText = null, string position = "suffix")
         {
+            // ✅ Handle single column with constant text
+            if (columnIndices.Length == 1 && !string.IsNullOrEmpty(constantText))
+            {
+                return ConcatenateWithConstant(data, columnIndices[0], constantText, position, newColumnName);
+            }
+
             if (columnIndices.Length < 2)
             {
                 Console.WriteLine("Not enough columns selected for concatenation");
@@ -13,17 +20,13 @@ namespace ExcelDataManipulator.API.Services
             }
 
             Console.WriteLine($"✅ Starting concatenation of columns: [{string.Join(", ", columnIndices)}]");
-            Console.WriteLine($"✅ Input data: {data.Data.Length} rows, {data.ColumnCount} columns");
-            Console.WriteLine($"✅ Delimiter: '{delimiter}'");
+            Console.WriteLine($"✅ New column name: '{newColumnName}'");
+            Console.WriteLine($"✅ Delimiters: [{string.Join(", ", delimiters ?? new string[0])}]");
 
-            // Create new data array with one additional column
             var newDataList = new List<string[]>();
-
             for (int rowIndex = 0; rowIndex < data.Data.Length; rowIndex++)
             {
                 var originalRow = data.Data[rowIndex];
-
-                // Create new row with space for one more column
                 var newRow = new string[data.ColumnCount + 1];
 
                 // Copy all existing data
@@ -32,28 +35,37 @@ namespace ExcelDataManipulator.API.Services
                     newRow[colIndex] = originalRow[colIndex] ?? "";
                 }
 
-                // Create concatenated value
-                var valuesToConcatenate = new List<string>();
-                foreach (int colIndex in columnIndices)
+                // Build concatenated value with different delimiters
+                var stringBuilder = new StringBuilder();
+                for (int i = 0; i < columnIndices.Length; i++)
                 {
-                    if (colIndex < originalRow.Length)
+                    int colIndex = columnIndices[i];
+                    string cellValue = colIndex < originalRow.Length ? (originalRow[colIndex] ?? "") : "";
+
+                    stringBuilder.Append(cellValue);
+
+                    // Add delimiter after current column (except for the last column)
+                    if (i < columnIndices.Length - 1)
                     {
-                        valuesToConcatenate.Add(originalRow[colIndex] ?? "");
+                        string delimiter = "";
+                        if (delimiters != null && i < delimiters.Length)
+                        {
+                            delimiter = delimiters[i] ?? "";
+                        }
+                        stringBuilder.Append(delimiter);
                     }
                 }
 
-                var concatenatedValue = string.Join(delimiter, valuesToConcatenate);
-                newRow[data.ColumnCount] = concatenatedValue; // Add as last column
-
+                var concatenatedValue = stringBuilder.ToString();
+                newRow[data.ColumnCount] = concatenatedValue;
                 newDataList.Add(newRow);
 
                 Console.WriteLine($"✅ Row {rowIndex}: Added '{concatenatedValue}'");
             }
 
-            // Create new headers array
+            // Use custom column name
             var newHeadersList = new List<string>(data.Headers);
-            var columnNames = columnIndices.Select(i => data.Headers[i]).ToArray();
-            newHeadersList.Add($"Concat_of_{string.Join("_", columnNames)}");
+            newHeadersList.Add(string.IsNullOrWhiteSpace(newColumnName) ? "Concatenated" : newColumnName);
 
             var result = new ExcelDataModel
             {
@@ -63,11 +75,134 @@ namespace ExcelDataManipulator.API.Services
                 ColumnCount = newHeadersList.Count
             };
 
-            Console.WriteLine($"✅ Result: {result.Data.Length} rows, {result.ColumnCount} columns");
-            Console.WriteLine($"✅ New headers: [{string.Join(", ", result.Headers)}]");
+            return result;
+        }
+
+
+        public ExcelDataModel ConcatenateWithConstant(ExcelDataModel data, int columnIndex, string constantText, string position = "suffix", string newColumnName = "Concatenated")
+        {
+            Console.WriteLine($"✅ Concatenating column {columnIndex} with constant text: '{constantText}' as {position}");
+            Console.WriteLine($"✅ New column name: '{newColumnName}'");
+
+            var newHeaders = new List<string>(data.Headers);
+            newHeaders.Add(string.IsNullOrWhiteSpace(newColumnName) ? "Concatenated" : newColumnName);
+
+            var newDataList = new List<string[]>();
+
+            for (int rowIndex = 0; rowIndex < data.Data.Length; rowIndex++)
+            {
+                var originalRow = data.Data[rowIndex];
+                var newRow = new string[data.ColumnCount + 1];
+
+                // Copy all existing data
+                for (int colIndex = 0; colIndex < originalRow.Length; colIndex++)
+                {
+                    newRow[colIndex] = originalRow[colIndex] ?? "";
+                }
+
+                // Get the original value from the selected column
+                string originalValue = columnIndex < originalRow.Length ? (originalRow[columnIndex] ?? "") : "";
+
+                // Concatenate based on position
+                string concatenatedValue = position.ToLower() == "prefix"
+                    ? constantText + originalValue
+                    : originalValue + constantText;
+
+                newRow[data.ColumnCount] = concatenatedValue;
+                newDataList.Add(newRow);
+
+                Console.WriteLine($"✅ Row {rowIndex}: '{originalValue}' -> '{concatenatedValue}'");
+            }
+
+            var result = new ExcelDataModel
+            {
+                Headers = newHeaders.ToArray(),
+                Data = newDataList.ToArray(),
+                RowCount = newDataList.Count,
+                ColumnCount = newHeaders.Count
+            };
 
             return result;
         }
+
+
+        public ExcelDataModel SplitColumnByDelimiter(ExcelDataModel data, int columnIndex, string delimiter, int? maxSplits = null, string columnBaseName = null)
+        {
+            Console.WriteLine($"✅ Splitting column {columnIndex} by delimiter: '{delimiter}'");
+
+            var sourceColumnName = data.Headers[columnIndex];
+            var baseNameForNewColumns = string.IsNullOrWhiteSpace(columnBaseName)
+                ? sourceColumnName
+                : columnBaseName;
+
+            Console.WriteLine($"✅ Source column: '{sourceColumnName}', Base name: '{baseNameForNewColumns}'");
+
+            // First, analyze the data to determine how many columns we need
+            int maxPartsFound = 0;
+            var allSplitData = new List<string[]>();
+
+            foreach (var row in data.Data)
+            {
+                string cellValue = row[columnIndex] ?? "";
+                string[] splitParts = cellValue.Split(new string[] { delimiter }, StringSplitOptions.None);
+                allSplitData.Add(splitParts);
+                maxPartsFound = Math.Max(maxPartsFound, splitParts.Length);
+            }
+
+            // Limit the number of columns if maxSplits is specified
+            int numberOfNewColumns = maxSplits.HasValue
+                ? Math.Min(maxPartsFound, maxSplits.Value)
+                : maxPartsFound;
+
+            Console.WriteLine($"✅ Will create {numberOfNewColumns} new columns");
+
+            // Create new headers
+            var newHeaders = new List<string>(data.Headers);
+            for (int i = 0; i < numberOfNewColumns; i++)
+            {
+                newHeaders.Add($"{baseNameForNewColumns}_Part{i + 1}");
+            }
+
+            // Create new data with split columns
+            var newDataList = new List<string[]>();
+
+            for (int rowIndex = 0; rowIndex < data.Data.Length; rowIndex++)
+            {
+                var originalRow = data.Data[rowIndex];
+                var newRow = new string[data.ColumnCount + numberOfNewColumns];
+
+                // Copy existing data
+                for (int colIndex = 0; colIndex < originalRow.Length; colIndex++)
+                {
+                    newRow[colIndex] = originalRow[colIndex] ?? "";
+                }
+
+                // Add split data
+                string[] splitParts = allSplitData[rowIndex];
+                for (int partIndex = 0; partIndex < numberOfNewColumns; partIndex++)
+                {
+                    newRow[data.ColumnCount + partIndex] = partIndex < splitParts.Length
+                        ? (splitParts[partIndex] ?? "")
+                        : "";
+                }
+
+                newDataList.Add(newRow);
+
+                Console.WriteLine($"✅ Row {rowIndex}: Split '{originalRow[columnIndex]}' into {Math.Min(splitParts.Length, numberOfNewColumns)} parts");
+            }
+
+            var result = new ExcelDataModel
+            {
+                Headers = newHeaders.ToArray(),
+                Data = newDataList.ToArray(),
+                RowCount = newDataList.Count,
+                ColumnCount = newHeaders.Count
+            };
+
+            Console.WriteLine($"✅ Split complete: {result.RowCount} rows, {result.ColumnCount} columns");
+            return result;
+        }
+
 
         // Trim entire column
         public ExcelDataModel TrimColumn(ExcelDataModel data, int columnIndex)
@@ -523,14 +658,17 @@ namespace ExcelDataManipulator.API.Services
         }
 
         // Add these methods to DataOperationsService.cs
-        
-       
-        
-        public ExcelDataModel MultiplyColumns(ExcelDataModel data, int[] columnIndices)
+
+
+
+        public ExcelDataModel MultiplyColumns(ExcelDataModel data, int[] columnIndices, string newColumnName = "Product")
         {
             Console.WriteLine($"✅ Multiplying columns: [{string.Join(", ", columnIndices)}]");
+            Console.WriteLine($"✅ New column name: '{newColumnName}'");
 
-            var newHeaders = new List<string>(data.Headers) { "Product" };
+            var newHeaders = new List<string>(data.Headers);
+            newHeaders.Add(string.IsNullOrWhiteSpace(newColumnName) ? "Product" : newColumnName);
+
             var newData = new List<string[]>();
 
             foreach (var row in data.Data)
@@ -563,11 +701,14 @@ namespace ExcelDataManipulator.API.Services
             };
         }
 
-        public ExcelDataModel MedianColumns(ExcelDataModel data, int[] columnIndices)
+        public ExcelDataModel MedianColumns(ExcelDataModel data, int[] columnIndices, string newColumnName = "Median")
         {
             Console.WriteLine($"✅ Calculating median for columns: [{string.Join(", ", columnIndices)}]");
+            Console.WriteLine($"✅ New column name: '{newColumnName}'");
 
-            var newHeaders = new List<string>(data.Headers) { "Median" };
+            var newHeaders = new List<string>(data.Headers);
+            newHeaders.Add(string.IsNullOrWhiteSpace(newColumnName) ? "Median" : newColumnName);
+
             var newData = new List<string[]>();
 
             foreach (var row in data.Data)
@@ -609,43 +750,43 @@ namespace ExcelDataManipulator.API.Services
         }
 
         // Update your existing SumColumns method to follow the same pattern:
-        public ExcelDataModel SumColumns(ExcelDataModel data, int[] columnIndices)
+        public ExcelDataModel SumColumns(ExcelDataModel data, int[] columnIndices, string newColumnName = "Sum")
         {
             Console.WriteLine($"✅ Calculating sum for columns: [{string.Join(", ", columnIndices)}]");
+            Console.WriteLine($"✅ New column name: '{newColumnName}'");
 
-            var aggregationRow = new string[data.Headers.Length];
+            // Create new column instead of aggregation row
+            var newHeaders = new List<string>(data.Headers);
+            newHeaders.Add(string.IsNullOrWhiteSpace(newColumnName) ? "Sum" : newColumnName);
 
-            for (int i = 0; i < aggregationRow.Length; i++)
+            var newData = new List<string[]>();
+
+            foreach (var row in data.Data)
             {
-                aggregationRow[i] = "";
-            }
+                var newRow = new string[row.Length + 1];
+                Array.Copy(row, newRow, row.Length);
 
-            foreach (int colIndex in columnIndices)
-            {
                 double sum = 0;
-
-                for (int rowIndex = 0; rowIndex < data.Data.Length; rowIndex++)
+                foreach (int colIndex in columnIndices)
                 {
-                    if (double.TryParse(data.Data[rowIndex][colIndex], out double val))
+                    if (colIndex < row.Length && double.TryParse(row[colIndex], out double val))
                     {
                         sum += val;
                     }
                 }
 
-                aggregationRow[colIndex] = $"Sum: {sum}";
+                newRow[row.Length] = sum.ToString();
+                newData.Add(newRow);
             }
-
-            var newData = new List<string[]>(data.Data) { aggregationRow };
 
             return new ExcelDataModel
             {
-                Headers = data.Headers,
+                Headers = newHeaders.ToArray(),
                 Data = newData.ToArray(),
                 RowCount = newData.Count,
-                ColumnCount = data.Headers.Length
+                ColumnCount = newHeaders.Count
             };
         }
-
     }
 
 

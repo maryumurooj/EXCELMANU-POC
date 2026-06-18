@@ -2,6 +2,15 @@
   "version": 3,
   "targets": {
     "net9.0": {
+      "Apache.Arrow/13.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/Apache.Arrow.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/Apache.Arrow.dll": {}
+        }
+      },
       "EPPlus/8.1.0": {
         "type": "package",
         "dependencies": {
@@ -402,6 +411,47 @@
           }
         }
       },
+      "ParquetSharp/20.0.0": {
+        "type": "package",
+        "dependencies": {
+          "Apache.Arrow": "13.0.0"
+        },
+        "compile": {
+          "lib/net6.0/ParquetSharp.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/ParquetSharp.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/ParquetSharp.targets": {}
+        },
+        "runtimeTargets": {
+          "runtimes/linux-arm64/native/ParquetSharpNative.so": {
+            "assetType": "native",
+            "rid": "linux-arm64"
+          },
+          "runtimes/linux-x64/native/ParquetSharpNative.so": {
+            "assetType": "native",
+            "rid": "linux-x64"
+          },
+          "runtimes/osx-arm64/native/ParquetSharpNative.dylib": {
+            "assetType": "native",
+            "rid": "osx-arm64"
+          },
+          "runtimes/osx-x64/native/ParquetSharpNative.dylib": {
+            "assetType": "native",
+            "rid": "osx-x64"
+          },
+          "runtimes/win-x64/native/ParquetSharpNative.dll": {
+            "assetType": "native",
+            "rid": "win-x64"
+          }
+        }
+      },
       "Swashbuckle.AspNetCore/9.0.3": {
         "type": "package",
         "dependencies": {
@@ -578,6 +628,22 @@
     }
   },
   "libraries": {
+    "Apache.Arrow/13.0.0": {
+      "sha512": "+QdmlKEMlN+vWR/3IyUSSZY8DaQWJT9qb3X5STGgXaEc9lF9hwBF0Hznz5i6Nq7J8BV4POW1Dt1QCezxUWqaHA==",
+      "type": "package",
+      "path": "apache.arrow/13.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.txt",
+        "apache.arrow.13.0.0.nupkg.sha512",
+        "apache.arrow.nuspec",
+        "lib/net6.0/Apache.Arrow.dll",
+        "lib/netcoreapp3.1/Apache.Arrow.dll",
+        "lib/netstandard1.3/Apache.Arrow.dll",
+        "lib/netstandard2.0/Apache.Arrow.dll"
+      ]
+    },
     "EPPlus/8.1.0": {
       "sha512": "ng/Tk42imOCvlMZr/CGB4+QGSOQQPspRAlnl7V1SuAgL8a93nlCti11nvP+FSuKoawp3D30JNLxVzi6FytZe1w==",
       "type": "package",
@@ -1404,6 +1470,31 @@
         "packageIcon.png"
       ]
     },
+    "ParquetSharp/20.0.0": {
+      "sha512": "8a+xMS7mmqFvNDu5TZZ17pStPb/kLruxG3jTy2+uBDms1nq2tUk+4D2EYycq8z/ymFU5vRM86QtactDoyRBGiQ==",
+      "type": "package",
+      "path": "parquetsharp/20.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.txt",
+        "build/ParquetSharp.targets",
+        "buildTransitive/ParquetSharp.targets",
+        "lib/net471/ParquetSharp.dll",
+        "lib/net471/ParquetSharp.xml",
+        "lib/net6.0/ParquetSharp.dll",
+        "lib/net6.0/ParquetSharp.xml",
+        "lib/netstandard2.1/ParquetSharp.dll",
+        "lib/netstandard2.1/ParquetSharp.xml",
+        "parquetsharp.20.0.0.nupkg.sha512",
+        "parquetsharp.nuspec",
+        "runtimes/linux-arm64/native/ParquetSharpNative.so",
+        "runtimes/linux-x64/native/ParquetSharpNative.so",
+        "runtimes/osx-arm64/native/ParquetSharpNative.dylib",
+        "runtimes/osx-x64/native/ParquetSharpNative.dylib",
+        "runtimes/win-x64/native/ParquetSharpNative.dll"
+      ]
+    },
     "Swashbuckle.AspNetCore/9.0.3": {
       "sha512": "Akk4oFgy0ST8Q8pZTfPbrt045tWNyMMiKhlbYjG3qnjQZLz645IL5vhQm7NLicc2sAAQ+vftArIlsYWFevmb2g==",
       "type": "package",
@@ -1722,6 +1813,7 @@
       "Microsoft.AspNetCore.Cors >= 2.3.0",
       "Microsoft.AspNetCore.OpenApi >= 9.0.6",
       "Newtonsoft.Json >= 13.0.3",
+      "ParquetSharp >= 20.0.0",
       "Swashbuckle.AspNetCore >= 9.0.3"
     ]
   },
@@ -1791,6 +1883,10 @@
           "Newtonsoft.Json": {
             "target": "Package",
             "version": "[13.0.3, )"
+          },
+          "ParquetSharp": {
+            "target": "Package",
+            "version": "[20.0.0, )"
           },
           "Swashbuckle.AspNetCore": {
             "target": "Package",

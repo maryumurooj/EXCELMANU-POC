@@ -1,100 +1,92 @@
 [
   {
-    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
-    "Method": "SetActiveSheet",
-    "RelativePath": "api/Excel/activesheet",
+    "ContainingType": "ExcelDataManipulator.API.Controllers.StreamingExcelController",
+    "Method": "CleanupSession",
+    "RelativePath": "api/excel/sessions/{sessionId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "sessionId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.StreamingExcelController",
+    "Method": "ExportData",
+    "RelativePath": "api/excel/sessions/{sessionId}/export",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "sessionId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "format",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "allSheets",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.StreamingExcelController",
+    "Method": "ExecuteOperation",
+    "RelativePath": "api/excel/sessions/{sessionId}/operations",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
+      {
+        "Name": "sessionId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "command",
+        "Type": "ExcelDataManipulator.API.Models.OperationCommand",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ExcelDataManipulator.API.Controllers.StreamingExcelController",
+    "Method": "GetDataSummary",
+    "RelativePath": "api/excel/sessions/{sessionId}/summary",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "sessionId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
       {
         "Name": "sheetName",
         "Type": "System.String",
-        "IsRequired": true
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
-    "Method": "GetActiveSheet",
-    "RelativePath": "api/Excel/activesheet",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": [
-      {
-        "Type": "System.String",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
-    "Method": "ExportFile",
-    "RelativePath": "api/Excel/export",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
-    "Method": "PerformOperation",
-    "RelativePath": "api/Excel/operation",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "request",
-        "Type": "ExcelDataManipulator.API.Models.OperationRequest",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "ExcelDataManipulator.API.Models.OperationResponse",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
-    "Method": "GetSheets",
-    "RelativePath": "api/Excel/sheets",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": [
-      {
-        "Type": "System.Collections.Generic.List\u00601[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "ExcelDataManipulator.API.Controllers.ExcelController",
+    "ContainingType": "ExcelDataManipulator.API.Controllers.StreamingExcelController",
     "Method": "UploadFile",
-    "RelativePath": "api/Excel/upload",
+    "RelativePath": "api/excel/upload",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
